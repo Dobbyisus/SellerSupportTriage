@@ -495,7 +495,10 @@ document.querySelectorAll(".chip[data-x]").forEach(b => b.addEventListener("clic
 
 // Warm the container and say what is behind the page, in plain words.
 fetch(API + "/health").then(r => r.json()).then(h => {
-  $("#status").innerHTML = "live system <b>ready</b> · policy search in-process · drafting on Bedrock · every decision kept in DynamoDB";
+  const search = h.retriever === "opensearch" ? "policy search on OpenSearch" : "policy search in-process";
+  const draft = h.drafter === "template" ? "template drafting" : "drafting on Bedrock";
+  const trail = h.trail === "dynamodb" ? "every decision kept in DynamoDB" : "decisions kept locally";
+  $("#status").innerHTML = "live system <b>ready</b> · " + search + " · " + draft + " · " + trail;
   $("#foot").textContent = "connected — tickets take a few seconds";
 }).catch(() => {
   $("#status").textContent = "live system unreachable — check the function URL";
