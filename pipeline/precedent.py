@@ -270,11 +270,36 @@ def assess(matches: list[dict], best_hit: dict | None) -> dict:
 
     Pure — no I/O — so the self-test can exercise every branch.
     """
-    similar = [_public(r) for r in matches
-               if (r.get("similarity") or 0.0) >= os_config.PRECEDENT_SIM]
-    same = [s for s in similar if s["same_question"]]
+    close = [_public(r) for r in matches
+             if (r.get("similarity") or 0.0) >= os_config.PRECEDENT_SIM]
+
+    # "What was sent last time" is decided over EVERY close ticket: the most
+    # recent same-question reply that actually went out.
+    same = [s for s in close if s["same_question"]]
     sent = [s for s in same if s["sent"]]
     last = max(sent, key=lambda s: s["created_ms"]) if sent else None
+
+    # What the agent is SHOWN is one row per distinct wording, most recent
+    # first. The trail holds re-runs of the same ticket text (the demo
+    # fixtures alone were run a dozen times), and five identical rows would
+    # both look broken and crowd out a genuinely different earlier ticket.
+    seen: set[str] = set()
+    similar = []
+    for s in sorted(close, key=lambda s: (-s["created_ms"], -(s["similarity"] or 0))):
+        key = " ".join(s["text"].lower().split())
+        if key in seen:
+            continue
+        seen.add(key)
+        similar.append(s)
+    similar.sort(key=lambda s: -(s["similarity"] or 0))
+    similar = similar[: os_config.PRECEDENT_K]
+    if last is not None and all(s["ticket_id"] != last["ticket_id"] for s in similar):
+        # The reply being compared against must be on screen even if a newer
+        # re-run of the same wording displaced it.
+        similar = [last] + [s for s in similar
+                            if " ".join(s["text"].lower().split())
+                            != " ".join(last["text"].lower().split())]
+        similar = similar[: os_config.PRECEDENT_K]
 
     current_doc = doc_identity(best_hit)
     consistent = None
@@ -288,7 +313,7 @@ def assess(matches: list[dict], best_hit: dict | None) -> dict:
     return {
         "checked": True,
         "similar": similar,
-        "same_question": len(same),
+        "same_question": len({" ".join(s["text"].lower().split()) for s in same}),
         "last_sent": last,
         "current_doc_id": current_doc,
         "consistent": consistent,
@@ -306,7 +331,10 @@ def lookup(store, text: str, best_hit: dict | None, exclude_id: str | None = Non
                 "conflict": False, "vector": None}
     try:
         vec = embed(text)
-        matches = store.find(vec, os_config.PRECEDENT_K, exclude_id=exclude_id)
+        # Fetch more than will be shown: re-runs of one wording collapse to a
+        # single row in assess(), and the distinct tickets behind them must
+        # still be in the candidate set.
+        matches = store.find(vec, os_config.PRECEDENT_K * 4, exclude_id=exclude_id)
         out = assess(matches, best_hit)
         out["backend"] = store.name
         out["vector"] = vec
@@ -502,6 +530,22 @@ def self_test() -> int:
         out = assess(low, hit_y)
         check(len(out["similar"]) == 1 and out["same_question"] == 0 and not out["conflict"],
               "similar-but-not-same is shown, never a conflict")
+
+        # re-runs of one wording collapse to one row, the newest, and the
+        # reply actually being compared against stays on screen
+        rerun = JsonlPrecedents(Path(d) / "r.jsonl")
+        for i in range(6):
+            rerun.remember(make_record("r%d" % i, a, 1000 + i, "shipping",
+                                       "ESCALATE" if i == 5 else "AUTO_SEND", [], hit_x, "sent %d" % i, va))
+        rerun.remember(make_record("r9", c, 500, "payments", "AUTO_SEND", [], hit_y, "sent C", vc))
+        out = assess(rerun.find(vb, os_config.PRECEDENT_K * 4), hit_x)
+        texts = [s["text"] for s in out["similar"]]
+        check(texts.count(a) == 1, "six re-runs of one wording show as one row")
+        check(out["same_question"] == 1, "same_question counts distinct wordings, not re-runs")
+        check(out["last_sent"] and out["last_sent"]["ticket_id"] == "r4",
+              "last sent is the newest reply that actually went out, not the newest re-run")
+        check(any(s["ticket_id"] == "r4" for s in out["similar"]),
+              "the reply being compared against is on screen")
 
         # the running ticket never matches itself
         check(all(r["ticket_id"] != "t1" for r in store.find(va, 3, exclude_id="t1")),
