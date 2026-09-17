@@ -1,8 +1,14 @@
 """AWS Lambda entry point for the Seller Support Triage pipeline.
 
+    GET  /                                the operator console (HTML)
     POST /ticket        {"text": "..."}   run a ticket, get the decision
     GET  /ticket/{id}                     replay one decision trail
     GET  /health                          liveness + warm the container
+
+WHY THE CONSOLE IS SERVED FROM HERE
+    Same origin as the API, so the page calls `ticket` and `health` as
+    relative paths with no CORS involved and nothing else to host. One URL is
+    the whole system — paste it anywhere and it works.
 
 `Pipeline.run()` was always the handler body; this module is the thin wrapper
 that turns an API Gateway event into a call and the result into JSON. The CLI
@@ -108,6 +114,21 @@ def lambda_handler(event, context):
                 "drafter": settings.DRAFTER,
                 "trail": settings.TRAIL,
             })
+
+        # The console. Read from disk per request rather than cached at import:
+        # the file is ~9KB, the read is microseconds against a multi-second
+        # request, and it means a broken console can never take the API down
+        # with it at module scope.
+        if method == "GET" and path == "/":
+            try:
+                html = (ROOT / "console.html").read_text(encoding="utf-8")
+            except OSError as e:
+                return _reply(500, {"error": "console.html missing", "detail": str(e)})
+            return {
+                "statusCode": 200,
+                "headers": {"Content-Type": "text/html; charset=utf-8", **CORS},
+                "body": html,
+            }
 
         if method == "POST" and path in ("/ticket", "/"):
             text = (_body(event).get("text") or "").strip()

@@ -58,8 +58,9 @@ RUN mkdir -p /opt/fastembed && \
 COPY gate/        ${LAMBDA_TASK_ROOT}/gate/
 COPY opensearch/  ${LAMBDA_TASK_ROOT}/opensearch/
 COPY pipeline/    ${LAMBDA_TASK_ROOT}/pipeline/
-COPY chunks.jsonl ${LAMBDA_TASK_ROOT}/
-COPY handler.py   ${LAMBDA_TASK_ROOT}/
+COPY chunks.jsonl  ${LAMBDA_TASK_ROOT}/
+COPY handler.py    ${LAMBDA_TASK_ROOT}/
+COPY console.html  ${LAMBDA_TASK_ROOT}/
 
 # ---------------------------------------------------------------------------
 # Runtime configuration.
