@@ -1,0 +1,31 @@
+# Seller Support Triage Console — pinned to the versions the measured numbers
+# were produced against. Install with:  pip install -r requirements.txt
+#
+# Playwright also needs its browser downloaded once, for the corpus collection
+# step only:  playwright install chromium
+
+# ── Runtime: the pipeline itself ─────────────────────────────────────────
+# Embeddings. bge-small at 384 dims; MIN_SIM = 0.72 is calibrated against
+# this model, so changing it invalidates the threshold.
+fastembed==0.8.0
+onnxruntime==1.29.0
+numpy==2.5.1
+
+# The Cedar policy engine. Runs the six forbid rules and validates them
+# against schema.cedarschema.
+cedarpy==4.8.7
+
+# AWS. Drafting is hand-signed SigV4 against bedrock-mantle (no boto3 client
+# exists for that endpoint), but boto3 supplies the credential chain and the
+# signer, plus the DynamoDB trail.
+boto3==1.43.90
+
+# Retrieval against the OpenSearch domain.
+opensearch-py==3.2.0
+
+# ── Corpus collection only ───────────────────────────────────────────────
+# Not needed to run the pipeline — only to rebuild the corpus from source.
+requests==2.32.5
+beautifulsoup4==4.14.2
+pdfplumber==0.11.10
+playwright==1.62.0

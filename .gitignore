@@ -1,0 +1,77 @@
+# Seller Support Triage Console — what is NOT committed
+#
+# Policy: code only, for now. All prose, data artefacts and the archived corpus
+# stay local. README.md gets written and committed when the project is
+# finalised — until then this repo is source, not documentation.
+#
+# TWO THINGS TO KNOW BEFORE EDITING THIS FILE:
+#
+# 1. Git does NOT support trailing comments. `foo.json  # why` is read as a
+#    literal pattern including the spaces and the hash, and silently matches
+#    nothing. Comments go on their own line. (This bit us once already.)
+#
+# 2. Data files are excluded BY NAME, not by extension glob. A blanket
+#    `*.json` / `*.txt` would silently swallow package.json, tsconfig.json and
+#    requirements.txt the moment the console UI lands. Add new artefacts by name.
+
+# ── Prose ────────────────────────────────────────────────────────────────
+# Every .md: the handoff, the knowledge base writeup, the planning notes and
+# the per-module READMEs. README.md is deliberately included in this —
+# un-ignore it with `!README.md` when the finalised one is ready to commit.
+*.md
+
+# ── Generated documents and diagrams ─────────────────────────────────────
+*.pdf
+*.png
+*.jpg
+*.jpeg
+
+# ── The archived corpus ──────────────────────────────────────────────────
+# 594 scraped first-party Amazon documents, their PDFs and the embedding
+# caches, ~5.8 MB. Two reasons beyond size: it is Amazon's content, not ours
+# to republish, and build_corpus.py regenerates it.
+SellerSupport_Docs/
+
+# ── Data artefacts ───────────────────────────────────────────────────────
+# COMMITTED DELIBERATELY, despite being data: chunks.jsonl (3.8 MB) and
+# opensearch/synonyms.txt. local_search.py reads both directly, so without
+# them a clone is 26 scripts that cannot run. They are the difference between
+# a repo someone can read and a system someone can start.
+#
+# Everything below is regenerable by the script named above it.
+# reembed_bedrock.py — the local-embedding fallback copy
+chunks.local-bge.jsonl
+# semantic_filter.py — the frozen 45-document knowledge base
+knowledge_base.json
+# the 67 plain-language tickets that selected the corpus
+filter_queries.tsv
+# embedding caches, keyed to a corpus fingerprint
+*.npz
+
+# ── Retrieval baselines ──────────────────────────────────────────────────
+opensearch/evaluate_baseline.json
+
+# ── The corpus audit trail ───────────────────────────────────────────────
+claude_reference_CSA/
+
+# ── Runtime output ───────────────────────────────────────────────────────
+pipeline/decision_trail.jsonl
+opensearch/evaluate_results.json
+opensearch/index_mapping.json
+opensearch/search_pipeline.json
+
+# ── Python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ── Local and sensitive ──────────────────────────────────────────────────
+.env
+.env.*
+.aws/
+*.pem
+*.key
+.DS_Store
+Thumbs.db
