@@ -49,14 +49,12 @@ except Exception:                       # noqa: BLE001 — see the docstring
     _INIT_ERROR = traceback.format_exc()
 
 
-# The console is served from a different origin (Amplify/S3), so the browser
-# preflights every POST. Without these the UI fails with an opaque CORS error
-# that looks like the API is down.
-CORS = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-}
+# CORS is the Function URL's job, not ours. Its URL config already answers
+# preflights and stamps Access-Control-Allow-Origin on every response. When
+# this handler added the same header itself, browsers saw two values
+# ("*, <origin>") and refused the response — so the console worked when the
+# Lambda served it (same origin, no CORS) and failed from anywhere else.
+CORS: dict[str, str] = {}
 
 
 def _reply(status: int, body: dict) -> dict:
