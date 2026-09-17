@@ -1,0 +1,44 @@
+// Cedar schema for the escalation gate.
+//
+// Kept deliberately small: one principal, one action, one resource. The gate
+// answers exactly one question, and a schema that stays this size is one a
+// judge can read on a slide.
+//
+// Amazon Verified Permissions takes the JSON form of this schema. Generate it
+// with `python gate/gate.py --schema-json`.
+
+namespace SellerTriage {
+
+  // The triage agent. A single entity today; a second principal would only be
+  // needed if a human operator were also subject to these policies, which they
+  // are not — the operator is who escalated work reaches.
+  entity Agent;
+
+  entity Ticket = {
+    // The classifier's output: account | returns | shipping | payments |
+    // listings. Present for logging and for the retrieval boost.
+    //
+    // NOTE: no forbid rule reads this. See the header of policies.cedar — a
+    // safety control must not depend on the classifier being right.
+    category: String,
+
+    // Deterministically extracted from the raw ticket text by topics.py, with
+    // no model in the loop. This is what every forbid rule reads.
+    topics: Set<String>,
+
+    // Exact cosine of the best retrieved passage, from search.py's confidence
+    // block. NOT the hybrid score.
+    retrieval_confidence: decimal,
+
+    // Did retrieval return a passage with a resolvable source URL?
+    has_citation: Bool,
+
+    // Does the drafted reply actually quote the retrieved passage?
+    draft_quotes_policy: Bool,
+  };
+
+  action AutoSend appliesTo {
+    principal: [Agent],
+    resource: [Ticket]
+  };
+}
