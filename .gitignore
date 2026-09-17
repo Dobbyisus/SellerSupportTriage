@@ -56,6 +56,7 @@ claude_reference_CSA/
 
 # ── Runtime output ───────────────────────────────────────────────────────
 pipeline/decision_trail.jsonl
+pipeline/precedents.jsonl
 opensearch/evaluate_results.json
 opensearch/index_mapping.json
 opensearch/search_pipeline.json
@@ -75,3 +76,6 @@ venv/
 *.key
 .DS_Store
 Thumbs.db
+
+# Claude desktop app launch config, local tooling only
+.claude/

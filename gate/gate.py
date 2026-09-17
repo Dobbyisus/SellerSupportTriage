@@ -104,6 +104,7 @@ def build_ticket(
     has_citation: bool = True,
     draft_quotes_policy: bool = True,
     topic_override: list[str] | None = None,
+    conflicts_with_precedent: bool = False,
 ) -> dict:
     """Assemble the Cedar resource for one ticket."""
     found = topic_override if topic_override is not None else topics_mod.extract(text)
@@ -116,6 +117,7 @@ def build_ticket(
         "retrieval_confidence": "%.4f" % confidence,
         "has_citation": has_citation,
         "draft_quotes_policy": draft_quotes_policy,
+        "conflicts_with_precedent": conflicts_with_precedent,
     }
 
 
@@ -131,6 +133,7 @@ def decide(ticket: dict, ticket_id: str = "t1", policy_path=None, policy_text=No
                 "retrieval_confidence": {"__extn": {"fn": "decimal", "arg": ticket["retrieval_confidence"]}},
                 "has_citation": ticket["has_citation"],
                 "draft_quotes_policy": ticket["draft_quotes_policy"],
+                "conflicts_with_precedent": bool(ticket.get("conflicts_with_precedent", False)),
             },
             "parents": [],
         },
@@ -251,6 +254,14 @@ CASES = [
     ("how do I change the handling time on my listings", "shipping", 0.79, True, False,
      "ESCALATE", "F6_ungrounded", "draft does not quote the passage"),
 
+    # ---- F7 conflicting precedent ----------------------------------------
+    # The same question was already answered and sent on a different policy
+    # page. Everything else is clean; only the precedent blocks it.
+    ("how do I change the handling time on my listings", "shipping", 0.88, True, True,
+     "ESCALATE", "F7_conflicting_precedent", "would contradict a reply already sent", True),
+    ("what is the late shipment rate target", "shipping", 0.88, True, True,
+     "AUTO_SEND", None, "a consistent precedent changes nothing", False),
+
     # ---- boundary --------------------------------------------------------
     ("what is the valid tracking rate requirement", "shipping", 0.72, True, True,
      "AUTO_SEND", None, "exactly at MIN_SIM — must pass, floor is inclusive"),
@@ -262,8 +273,10 @@ CASES = [
 def self_test() -> int:
     print("Cedar gate — test matrix\n")
     passed = failed = 0
-    for text, cat, conf, cite, quotes, expected, expect_rule, label in CASES:
-        ticket = build_ticket(text, cat, conf, cite, quotes)
+    for case in CASES:
+        text, cat, conf, cite, quotes, expected, expect_rule, label = case[:8]
+        conflict = case[8] if len(case) > 8 else False
+        ticket = build_ticket(text, cat, conf, cite, quotes, conflicts_with_precedent=conflict)
         out = decide(ticket)
         ok = out["decision"] == expected
         if ok and expect_rule:
@@ -314,6 +327,8 @@ def main() -> None:
     ap.add_argument("--confidence", type=float, default=0.80)
     ap.add_argument("--no-citation", action="store_true")
     ap.add_argument("--no-quote", action="store_true")
+    ap.add_argument("--conflict", action="store_true",
+                    help="the same question was already sent on a different policy page")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--validate", action="store_true")
     ap.add_argument("--schema-json", action="store_true")
@@ -340,7 +355,8 @@ def main() -> None:
 
     text = " ".join(args.ticket)
     ticket = build_ticket(
-        text, args.category, args.confidence, not args.no_citation, not args.no_quote
+        text, args.category, args.confidence, not args.no_citation, not args.no_quote,
+        conflicts_with_precedent=args.conflict,
     )
     policy_path = Path(args.policies) if args.policies else None
     out = decide(ticket, policy_path=policy_path)
@@ -371,6 +387,7 @@ def main() -> None:
                 "published_guidance": "published guidance (third-party, not Amazon first-party)",
                 "design_decision": "our own design decision, not from published guidance",
                 "design_decision_and_measurement": "our decision, backed by measurement",
+                "seller_forums": "seller reports on Amazon's own Seller Forums (hosted first-party, self-selected)",
             }.get(prov["source_type"], prov["source_type"])
             print("     basis  : %s" % label)
             if prov["source"]:

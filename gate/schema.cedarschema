@@ -35,6 +35,12 @@ namespace SellerTriage {
 
     // Does the drafted reply actually quote the retrieved passage?
     draft_quotes_policy: Bool,
+
+    // Was this same question already answered and SENT, standing on a
+    // different policy document than the one retrieved today? Produced by
+    // pipeline/precedent.py from the decision trail — a fact about what the
+    // system itself sent before, not a model opinion.
+    conflicts_with_precedent: Bool,
   };
 
   action AutoSend appliesTo {

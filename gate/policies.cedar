@@ -207,3 +207,32 @@ forbid (
   || resource.has_citation == false
   || resource.draft_quotes_policy == false
 };
+
+// ---------------------------------------------------------------------------
+// F7 — the reply would contradict one already sent
+// ---------------------------------------------------------------------------
+// The other complaint the forum threads make, beside template replies:
+// different representatives giving conflicting information on the same
+// issue. The decision trail records what was sent; this rule reads it back.
+//
+// conflicts_with_precedent is true only when a ticket that is THE SAME
+// QUESTION (ticket-to-ticket cosine at or above PRECEDENT_SAME) was already
+// answered with an AUTO_SEND reply that stood on a DIFFERENT policy document
+// than the one retrieved today. A merely similar ticket never trips it, and
+// neither does an escalated one — a person answered that, and the system
+// never saw what they wrote. Two sections of the same page are one answer.
+//
+// It does not decide which page is right. It stops a second, different
+// answer going out under Amazon's name without a person reconciling the two.
+@id("F7_conflicting_precedent")
+@reason("This question was already answered and sent, standing on a different policy page. A second, different answer is the inconsistency sellers complain about — a person reconciles the two first.")
+@grounding("Sellers on Amazon's own Seller Forums (July 2026) report different representatives giving conflicting information on the same issue. The trail records what was sent; this rule refuses to contradict it unseen.")
+@source_type("seller_forums")
+@source("https://sellercentral.amazon.com/seller-forums/discussions/t/9ae786eb-8ebf-40ae-b8e7-6e63f66e9e0a")
+forbid (
+  principal,
+  action == SellerTriage::Action::"AutoSend",
+  resource
+) when {
+  resource.conflicts_with_precedent == true
+};

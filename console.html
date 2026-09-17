@@ -98,8 +98,8 @@
   .trail .sum .why{font-size:12.5px;color:var(--sec);white-space:nowrap}
   .trail .sum .pill{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.03em;color:#fff;border-radius:4px;padding:6px 12px;background:var(--verdict)}
   .trail .track{position:relative;flex-grow:1;padding-top:44px}
-  .trail .line{position:absolute;left:8.33%;top:70px;height:2px;background:repeating-linear-gradient(90deg,#A79F8C 0 5px,transparent 5px 11px)}
-  @keyframes grow-a{from{width:0}to{width:83.34%}} @keyframes grow-b{from{width:0}to{width:83.34%}}
+  .trail .line{position:absolute;left:7.14%;top:70px;height:2px;background:repeating-linear-gradient(90deg,#A79F8C 0 5px,transparent 5px 11px)}
+  @keyframes grow-a{from{width:0}to{width:85.72%}} @keyframes grow-b{from{width:0}to{width:85.72%}}
   .line.a{animation:grow-a .9s cubic-bezier(.4,0,.2,1) both} .line.b{animation:grow-b .9s cubic-bezier(.4,0,.2,1) both}
   .trail .stops{position:relative;display:flex;align-items:flex-start}
   .stop{flex:1 1 0;position:relative;padding:10px 4px 0;background:transparent;border:0;display:flex;flex-direction:column;align-items:center;gap:6px}
@@ -141,6 +141,9 @@
   .stage .q.bad{border-color:var(--escLine);background:var(--escBg)}
   .stage .q .m{flex-shrink:0;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ok)} .stage .q.bad .m{color:var(--esc)}
   .stage .q .x{flex-grow:1;font-size:12px;line-height:1.45} .stage .q .v{flex-shrink:0;font-size:11.5px;color:var(--ok)} .stage .q.bad .v{color:var(--esc)}
+  .stage .q.past{cursor:pointer;border-color:var(--line);background:#F7F8F8} .stage .q.past:hover{border-color:var(--sec)} .stage .q.past .m{color:var(--sec)} .stage .q.past .v{color:var(--sec)}
+  .stage .q.past.sent{border-color:var(--okLine);background:var(--okBg)} .stage .q.past.sent .m,.stage .q.past.sent .v{color:var(--ok)}
+  .stage .q.past.same .x{font-weight:600}
   .stage .cards{display:flex;flex-direction:column;gap:11px}
   .card{border:1px solid var(--escLine);border-radius:7px;overflow:hidden}
   .card.ok{border-color:var(--okLine)}
@@ -214,12 +217,14 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 
 // Plain-language versions of gate/policies.cedar — what a support agent needs: why, not how.
 const GUIDE = "https://marketplacevalet.com/how-to-escalate-a-seller-support-case-on-amazon-a-step-by-step-guide/";
+const FORUM = "https://sellercentral.amazon.com/seller-forums/discussions/t/9ae786eb-8ebf-40ae-b8e7-6e63f66e9e0a";
 const RULES = {
   F1_account_enforcement:{ title:"Account at risk", reason:"The seller’s account is being suspended, deactivated or reviewed. A wrong automated reply here can cost them their business, so Seller Performance handles it.", grounding:"Published escalation guidance names account suspensions and deactivation threats as cases that need a person directly.", badge:"PUBLISHED GUIDANCE", url:GUIDE },
   F2_payments:{ title:"Payment hold", reason:"Money is being held or a payout has failed. The seller’s cash flow is at stake, so a person confirms the real account state before anything is sent.", grounding:"Published escalation guidance names payment holds and disbursement delays as cases that need a person.", badge:"PUBLISHED GUIDANCE", url:GUIDE },
   F3_appeals:{ title:"Appeal or reinstatement", reason:"The seller is appealing or asking for their account back. That is a judgement about their history, and no policy page covers how to write an appeal.", grounding:"Our own rule: appeals are a person’s call, and the policy library has nothing that would ground an automated answer.", badge:"OUR OWN RULE", url:"" },
   F4_listing_suppression:{ title:"Listing suppressed", reason:"A listing has been hidden, removed or gated. This is on the published escalation list, and it is an area where automated answers are least reliable.", grounding:"Published escalation guidance names incorrect listing suppressions as cases worth escalating.", badge:"PUBLISHED GUIDANCE", url:GUIDE },
   F5_legal:{ title:"Legal matter", reason:"The ticket mentions IP, counterfeits, lawyers, police or regulators. An automated system must never state Amazon’s legal position.", grounding:"Our own rule: a drafted reply on a legal matter creates exposure whether or not it is correct.", badge:"OUR OWN RULE", url:"" },
+  F7_conflicting_precedent:{ title:"Conflicts with an earlier reply", reason:"Another agent already answered this same question, and that reply was built on a different policy page. Sending a second, different answer is the inconsistency sellers complain about most, so a person reconciles the two first.", grounding:"Sellers on Amazon’s own forums report different representatives giving conflicting information on the same issue.", badge:"SELLER FORUMS", url:FORUM },
   F6_ungrounded:{ title:"Reply not grounded in policy", reason:"The draft could not be tied to a real policy page — the search was not close enough, or a quoted line or link did not check out. Sending it would be a generic template reply.", grounding:"Published escalation guidance treats a template reply that does not address the seller’s actual situation as itself a reason to escalate.", badge:"PUBLISHED GUIDANCE", url:GUIDE },
 };
 const ruleTitle = id => (RULES[id] || {title:id.replace(/^F\d_/, "").replace(/_/g, " ")}).title;
@@ -230,16 +235,29 @@ const STOPS = [
   ["1","SORT","Which desk this belongs to"],
   ["2","FIND POLICY","The Amazon policy page the reply will be built on"],
   ["3","SEARCH AGAIN","One more try, in the words sellers actually use"],
-  ["4","DRAFT","The reply, checked line by line against the policy"],
-  ["5","DECIDE","The rulebook says whether a person must look first"],
+  ["4","ASKED BEFORE","Whether another agent already answered this question, and what they sent"],
+  ["5","DRAFT","The reply, checked line by line against the policy"],
+  ["6","DECIDE","The rulebook says whether a person must look first"],
 ];
+const LAST = STOPS.length - 1;
+
+// "3 days ago", for the past tickets. Never a raw timestamp on screen.
+function ago(ms){
+  if (!ms) return "";
+  const d = Date.now() - ms;
+  const m = Math.round(d / 60000), h = Math.round(d / 3600000), dd = Math.round(d / 86400000);
+  if (m < 2) return "just now";
+  if (m < 60) return m + " min ago";
+  if (h < 36) return h + (h === 1 ? " hour ago" : " hours ago");
+  return dd + (dd === 1 ? " day ago" : " days ago");
+}
 
 // ---------------------------------------------------------------- demo tickets
 // Six real runs from the decision trail, kept on the rail so the console is
 // never blank. Anything the operator raises hangs in front of them.
 const SC = "https://sellercentral.amazon.com/help/hub/reference/external/";
 const BSA = "https://m.media-amazon.com/images/G/01/rainier/help./1.1_BSA_PDF_English.pdf";
-const seedBase = { state: "done", seed: true, provenance: [], refused: false, unverified: [], urlsInvented: [], detail: "" };
+const seedBase = { state: "done", seed: true, provenance: [], refused: false, unverified: [], urlsInvented: [], detail: "", precedent: null };
 const SEEDS = [
   { id: "ac5d28b0", cat: "payments", verdict: "ESCALATE", codes: ["F2_payments", "F6_ungrounded"], topics: ["payment_hold"], steps: 5,
     text: "my payment is on hold and I don't know why", close: false,
@@ -278,7 +296,7 @@ const SEEDS = [
 // ---------------------------------------------------------------- state
 let tickets = [];          // newest first; the operator's own tickets, then the demo set
 let selectedId = null;
-let stage = 5;
+let stage = LAST;
 let runs = 0;
 let arriving = null;
 let animatedRun = -1;      // the trail only redraws itself when the open ticket changes
@@ -306,6 +324,17 @@ function normalize(r){
   const g = r.grounding || {};
   const d = r.decision || {};
   const minSim = (r.confidence || {}).min_sim ?? 0.72;
+  const pr = r.precedent || null;
+  const pastOf = x => x ? { id: x.ticket_id, text: x.text || "", when: x.created_ms || 0, sent: !!x.sent, same: !!x.same_question, verdict: x.decision || "", policy: { title: (x.policy || {}).title || "", path: (x.policy || {}).path || "", url: (x.policy || {}).url || "" }, draft: x.draft || "" } : null;
+  const precedent = pr ? {
+    checked: !!pr.checked,
+    reason: pr.reason || "",
+    similar: (pr.similar || []).map(pastOf),
+    sameCount: pr.same_question || 0,
+    lastSent: pastOf(pr.last_sent),
+    consistent: pr.consistent,
+    conflict: !!pr.conflict,
+  } : null;
 
   const passage = h => h ? { title: h.title || "", path: h.heading_path || "", url: h.source_url || "" } : null;
 
@@ -329,6 +358,7 @@ function normalize(r){
     unverified: g.unverified || [],
     urlsInvented: g.urls_invented || [],
     detail: g.detail || "",
+    precedent,
     steps: (r.steps || []).length,
   };
 }
@@ -339,8 +369,9 @@ function stateOf(t, i){
   if (t.state === "error") return i === 0 ? "done" : "wait";
   if (i === 2 && !t.close) return "flag";
   if (i === 3) return t.requery ? "done" : "skip";
-  if (i === 4 && !t.quotesOk) return "flag";
-  if (i === 5) return t.verdict === "ESCALATE" ? "stop" : "done";
+  if (i === 4) { const p = t.precedent; if (!p || !p.checked) return "skip"; return p.conflict ? "flag" : (p.similar.length ? "done" : "skip"); }
+  if (i === 5 && !t.quotesOk) return "flag";
+  if (i === 6) return t.verdict === "ESCALATE" ? "stop" : "done";
   return "done";
 }
 const inkOf = t => t.verdict === "ESCALATE" ? "var(--esc)" : (t.state === "done" ? "var(--ok)" : "var(--squid)");
@@ -358,7 +389,7 @@ function renderRail(){
     return;
   }
   rail.innerHTML = tickets.map((t, i) => {
-    const dots = [1,2,3,4,5].map(k => {
+    const dots = [1,2,3,4,5,6].map(k => {
       const s = stateOf(t, k);
       const cls = (s === "skip" || s === "wait") ? "pale" : s === "flag" ? "flag" : s === "stop" ? "end" : "";
       return '<i class="' + cls + '"></i>';
@@ -397,7 +428,8 @@ function renderTrail(){
     if (i === 1) return t.cat;
     if (i === 2) return t.close ? "close match" : "weak match";
     if (i === 3) return t.requery ? "ran" : "not needed";
-    if (i === 4) return t.quotesOk ? "checks out" : "does not check out";
+    if (i === 4) { const p = t.precedent; if (!p || !p.checked) return "not checked"; if (!p.similar.length) return "first time"; if (p.conflict) return "different answer"; return p.lastSent ? "same answer" : "seen before"; }
+    if (i === 5) return t.quotesOk ? "checks out" : "does not check out";
     return t.verdict.toLowerCase();
   };
   const verdict = t.state === "busy" ? "WORKING" : t.state === "error" ? "ERROR" : t.verdict;
@@ -455,6 +487,35 @@ function renderStage(){
     }
     aside = "Sellers rarely use policy wording. When the first search misses, we try once more with the words sellers actually use. One retry, never a loop.";
   } else if (stage === 4) {
+    const p = t.precedent;
+    if (!p || !p.checked) {
+      badge = "NOT CHECKED";
+      lead = t.seed ? "This demo ticket was recorded before earlier replies were checked, so there is nothing to compare here." : ("Earlier tickets could not be checked this time" + (p && p.reason ? ": " + p.reason : "") + ". The other rules still applied in full.");
+    } else if (!p.similar.length) {
+      badge = "FIRST TIME"; lead = "No earlier ticket asks this question, so there is no previous reply to stay consistent with.";
+    } else if (p.conflict) {
+      badge = "DIFFERENT ANSWER"; badgeCls = "bad";
+      lead = "This question has come up before, and the reply that went out " + ago(p.lastSent.when) + " was built on a different policy page than the one found today. Rather than send a second, different answer, a person reconciles the two.";
+    } else if (p.lastSent) {
+      badge = "SAME ANSWER"; badgeCls = "good";
+      lead = "This question has come up before. The reply that went out " + ago(p.lastSent.when) + " was built on the same policy page, so this seller gets the same answer as the last one who asked.";
+    } else {
+      badge = "SEEN BEFORE";
+      lead = (p.similar.length === 1 ? "One similar ticket came in before, but it" : p.similar.length + " similar tickets came in before, but every one") + " was held for a person, so there is no earlier reply to compare with.";
+    }
+    if (p && p.checked && p.similar.length) {
+      quotes = '<span class="k">EARLIER TICKETS LIKE THIS ONE</span>' + p.similar.map(x => {
+        const onRail = tickets.some(y => y.id === x.id);
+        return '<div class="q past' + (x.sent ? " sent" : "") + (x.same ? " same" : "") + '"' + (onRail ? ' data-go="' + esc(x.id) + '" title="Open this ticket on the rail"' : "") + '><span class="m">' + (x.sent ? "✓" : "–") + '</span><span class="x">“' + esc(x.text) + '”</span><span class="v">' + (x.same ? "same question · " : "similar · ") + (x.sent ? "reply sent " : "held for a person ") + esc(ago(x.when)) + '</span></div>';
+      }).join("");
+    }
+    if (p && p.lastSent) {
+      pass = passage(p.conflict ? "POLICY PAGE THE EARLIER REPLY USED" : "POLICY PAGE USED BOTH TIMES", p.lastSent.policy);
+      if (p.lastSent.draft) paper = p.lastSent.draft;
+      if (paper) chips = '<span class="k">WHAT WAS SENT LAST TIME</span>';
+    }
+    aside = "Sellers on Amazon’s own forums report different agents giving different answers to the same question. Checking what was already sent, before drafting, is how the system keeps to one answer per question.";
+  } else if (stage === 5) {
     if (t.refused) { badge = "DECLINED"; badgeCls = "bad"; lead = "The system declined to draft rather than guess, so there is nothing grounded to send."; }
     else {
       badge = t.quotesOk ? "CHECKS OUT" : "DOES NOT CHECK OUT"; badgeCls = t.quotesOk ? "good" : "bad";
@@ -478,43 +539,42 @@ function renderStage(){
       cards = t.codes.map(id => {
         const r = RULES[id] || { title: ruleTitle(id), reason: "", grounding: "", badge: "", url: "" };
         const prov = t.provenance.find(p => p.rule === id) || {};
-        const fired = id === "F6_ungrounded" ? "because the draft could not be tied to the policy" : "because of the seller’s wording";
+        const fired = id === "F6_ungrounded" ? "because the draft could not be tied to the policy" : id === "F7_conflicting_precedent" ? "because an earlier reply used a different policy page" : "because of the seller’s wording";
         const url = r.url || prov.source || "";
         return '<article class="card"><div class="ch"><span class="t">' + esc(r.title) + '</span><span class="f">' + fired + '</span><span class="b">' + esc(r.badge || (prov.source_type || "").replace(/_/g, " ").toUpperCase()) + '</span></div>' +
           '<div class="cb"><p>' + esc(r.reason || (t.provenance.find(p => p.rule === id) || {}).grounding || "") + '</p><p class="g">' + esc(r.grounding || "") + '</p>' + (url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">Read the escalation guidance</a>' : "") + '</div></article>';
       }).join("");
     } else {
-      cards = '<article class="card ok"><div class="ch"><span class="t">Routine, grounded question</span><span class="f">nothing needed a person</span><span class="b">CLEARED</span></div><div class="cb"><p>Routine questions are most of the queue. When the reply is built on a matching policy page and every quote checks out, holding it would only slow the seller down.</p><p class="g">All six escalation rules were checked first. None applied.</p></div></article>';
+      cards = '<article class="card ok"><div class="ch"><span class="t">Routine, grounded question</span><span class="f">nothing needed a person</span><span class="b">CLEARED</span></div><div class="cb"><p>Routine questions are most of the queue. When the reply is built on a matching policy page and every quote checks out, holding it would only slow the seller down.</p><p class="g">All seven escalation rules were checked first. None applied.</p></div></article>';
     }
     aside = "A fixed rulebook makes the call, not the AI. If any rule says a person must look, that wins — no matter how confident the draft sounds.";
   }
 
   el.innerHTML =
-    '<div class="head"><span class="n">STOP ' + (stage + 1) + ' / 6</span><span class="name">' + S[1].replace("FIND POLICY", "FIND THE POLICY").replace("DRAFT", "DRAFT THE REPLY") + '</span><span class="sub">' + esc(S[2].toLowerCase()) + '</span>' + (badge ? '<span class="badge ' + badgeCls + '">' + esc(badge) + '</span>' : "") + '</div>' +
+    '<div class="head"><span class="n">STOP ' + (stage + 1) + ' / ' + STOPS.length + '</span><span class="name">' + S[1].replace("FIND POLICY", "FIND THE POLICY").replace("DRAFT", "DRAFT THE REPLY") + '</span><span class="sub">' + esc(S[2].toLowerCase()) + '</span>' + (badge ? '<span class="badge ' + badgeCls + '">' + esc(badge) + '</span>' : "") + '</div>' +
     '<div class="body"><div class="left">' +
       (lead ? '<p class="lead">' + esc(lead) + '</p>' : "") +
-      (paper ? '<div class="paper"><p>' + esc(paper) + '</p></div>' : "") +
-      (chips ? '<div class="chips">' + chips + '</div>' : "") +
-      pass +
-      (quotes ? '<div class="quotes">' + quotes + '</div>' : "") +
+      (stage === 4 ? (quotes ? '<div class="quotes">' + quotes + '</div>' : "") + pass + (chips ? '<div class="chips">' + chips + '</div>' : "") + (paper ? '<div class="paper"><p>' + esc(paper) + '</p></div>' : "")
+                   : (paper ? '<div class="paper"><p>' + esc(paper) + '</p></div>' : "") + (chips ? '<div class="chips">' + chips + '</div>' : "") + pass + (quotes ? '<div class="quotes">' + quotes + '</div>' : "")) +
       (cards ? '<div class="cards">' + cards + '</div>' : "") +
     '</div>' + (aside ? '<div class="aside"><span class="k">WHY THIS STOP EXISTS</span><p>' + esc(aside) + '</p></div>' : "") + '</div>';
+  el.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => select(b.dataset.go)));
 }
 
 function renderAll(){ renderRail(); renderTrail(); renderStage(); }
 
 function select(id){
   if (id === selectedId) return;
-  selectedId = id; stage = 5; runs++; arriving = null;
+  selectedId = id; stage = LAST; runs++; arriving = null;
   renderAll();
 }
 
 // ---------------------------------------------------------------- the live system
 async function send(text){
   const tmpId = "t" + Math.random().toString(16).slice(2, 8);
-  const t = { id: tmpId, state: "busy", text, cat: "…", verdict: "", codes: [], topics: [], provenance: [], close: true, requery: null, quotesOk: true, draft: "", verified: [], unverified: [], urlsInvented: [] };
+  const t = { id: tmpId, state: "busy", text, cat: "…", verdict: "", codes: [], topics: [], provenance: [], close: true, requery: null, quotesOk: true, draft: "", verified: [], unverified: [], urlsInvented: [], precedent: null };
   tickets.unshift(t);
-  selectedId = tmpId; stage = 5; runs++; arriving = tmpId;
+  selectedId = tmpId; stage = LAST; runs++; arriving = tmpId;
   renderAll();
   $("#send").disabled = true;
   try {
@@ -549,7 +609,8 @@ fetch(API + "/health").then(r => r.json()).then(h => {
   const search = h.retriever === "opensearch" ? "policy search on OpenSearch" : "policy search in-process";
   const draft = h.drafter === "template" ? "template drafting" : "drafting on Bedrock";
   const trail = h.trail === "dynamodb" ? "every decision kept in DynamoDB" : "decisions kept locally";
-  $("#status").innerHTML = "live system <b>ready</b> · " + search + " · " + draft + " · " + trail;
+  const past = h.precedent === "off" ? "" : " · earlier replies checked first";
+  $("#status").innerHTML = "live system <b>ready</b> · " + search + " · " + draft + " · " + trail + past;
   $("#foot").textContent = "connected — tickets take a few seconds";
 }).catch(() => {
   $("#status").textContent = "live system unreachable — check the function URL";

@@ -25,6 +25,7 @@ knowledge_base.json
 filter_queries.tsv
 *.npz
 pipeline/decision_trail.jsonl
+pipeline/precedents.jsonl
 opensearch/evaluate_baseline.json
 opensearch/evaluate_results.json
 

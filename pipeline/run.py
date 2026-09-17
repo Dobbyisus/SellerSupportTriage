@@ -67,14 +67,33 @@ def render(out: dict, verbose: bool = True) -> None:
         if step.get("expanded_with"):
             print("     synonyms added: %s" % ", ".join(step["expanded_with"][:8]))
 
+    pr = out.get("precedent") or {}
+    if not pr.get("checked"):
+        print("  4. PRECEDENT  not checked (%s)" % (pr.get("reason") or pr.get("backend")))
+    elif not pr["similar"]:
+        print("  4. PRECEDENT  none — first time this has been asked")
+    else:
+        last = pr.get("last_sent")
+        verdict = ("CONFLICT: sent before on a different page" if pr["conflict"]
+                   else "consistent with what was sent before" if last
+                   else "seen before, nothing sent yet")
+        print("  4. PRECEDENT  %d similar, %d the same question -> %s"
+              % (len(pr["similar"]), pr["same_question"], verdict))
+        for s in pr["similar"][:3]:
+            print("     %.3f %-13s %-5s %s" % (s["similarity"],
+                  "same question" if s["same_question"] else "similar",
+                  "sent" if s["sent"] else "held", s["text"][:52]))
+        if last:
+            print("     last sent stood on: %s" % (last["policy"]["title"] or last["doc_id"]))
+
     g = out["grounding"]
-    print("\n  4. DRAFT      grounding: %s" % g["detail"])
+    print("\n  5. DRAFT      grounding: %s" % g["detail"])
     if verbose:
         print()
         for line in out["draft"].splitlines():
             print("     | %s" % line)
 
-    print("\n  5. GATE       %s" % d["decision"])
+    print("\n  6. GATE       %s" % d["decision"])
     print("     topics: %s" % (", ".join(d["topics"]) or "none"))
     for rid, reason in zip(d["blocked_by"], d["reasons"]):
         print("     %-26s %s" % (rid, reason))

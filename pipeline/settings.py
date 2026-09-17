@@ -9,6 +9,8 @@ orchestrator knows which is in use.
     PIPELINE_DRAFTER    template | mantle | bedrock  (default: mantle)
     MANTLE_MODEL        a bedrock-mantle model id   (default: Mistral Large 3)
     PIPELINE_TRAIL      jsonl | dynamodb       (default: jsonl)
+    PIPELINE_PRECEDENT  jsonl | opensearch | off
+                        (default: opensearch when the retriever is, else jsonl)
 
 IMPORT BOOTSTRAP
     opensearch/ and gate/ were written as flat scripts — they do `import
@@ -55,6 +57,17 @@ CLASSIFIER = _pick("PIPELINE_CLASSIFIER", "local", {"local", "bedrock"})
 DRAFTER = _pick("PIPELINE_DRAFTER", "mantle", {"template", "mantle", "bedrock"})
 TRAIL = _pick("PIPELINE_TRAIL", "jsonl", {"jsonl", "dynamodb"})
 
+# Where past tickets live for the precedent check. They follow the retriever:
+# if policy search is on OpenSearch the past tickets sit in a second index on
+# the same domain; in-process retrieval pairs with a local JSONL file. The
+# deployed function cannot scan DynamoDB (its role holds PutItem and Query
+# only), which is why the trail is not the store here.
+PRECEDENT = _pick(
+    "PIPELINE_PRECEDENT",
+    "opensearch" if RETRIEVER == "opensearch" else "jsonl",
+    {"jsonl", "opensearch", "off"},
+)
+
 # bedrock-mantle is Bedrock's other inference endpoint. It works on this
 # account, where bedrock-runtime is blocked by the new-account eligibility
 # restriction. Mistral Large 3 is the default because it was the most
@@ -65,6 +78,7 @@ MANTLE_REGION = os.environ.get("AWS_REGION", "us-east-1")
 DRAFT_TIMEOUT = int(os.environ.get("PIPELINE_DRAFT_TIMEOUT", "60"))
 
 TRAIL_PATH = ROOT / "pipeline" / "decision_trail.jsonl"
+PRECEDENTS_PATH = ROOT / "pipeline" / "precedents.jsonl"
 DYNAMO_TABLE = os.environ.get("PIPELINE_TABLE", "seller-triage-tickets")
 
 # How many chunks the local classifier votes over.
@@ -75,11 +89,12 @@ TOP_K = 5
 
 
 def summary() -> str:
-    return "retriever=%s classifier=%s drafter=%s trail=%s" % (
+    return "retriever=%s classifier=%s drafter=%s trail=%s precedent=%s" % (
         RETRIEVER,
         CLASSIFIER,
         DRAFTER,
         TRAIL,
+        PRECEDENT,
     )
 
 

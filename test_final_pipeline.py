@@ -82,6 +82,16 @@ def health_checks() -> bool:
         first = json.loads((ROOT / "chunks.jsonl").open(encoding="utf-8").readline())
         return "%d chunks, %d dims" % (n, len(first["embedding"]))
 
+    def precedent():
+        import precedent as precedent_mod
+        store = precedent_mod.open_store()
+        if store is None:
+            return "off"
+        if hasattr(store, "__len__"):
+            return "%s, %d past tickets" % (store.name, len(store))
+        n = store._client.count(index=store.index)["count"]
+        return "%s/%s, %d past tickets" % (store.name, store.index, n)
+
     def cedar():
         import gate as gate_mod
         _, meta = gate_mod.load_policies()
@@ -113,6 +123,7 @@ def health_checks() -> bool:
 
     check("corpus", corpus)
     check("cedar policies", cedar)
+    check("precedent store", precedent)
     check("bedrock-mantle", bedrock)
     print(SUB)
     if not ok:
@@ -173,9 +184,28 @@ def render(out: dict, elapsed: float, show_draft: bool = True,
         if step.get("expanded_with"):
             print("                + %s" % ", ".join(step["expanded_with"][:10]))
 
+    pr = out.get("precedent") or {}
+    if not pr.get("checked"):
+        print("  4. PRECEDENT  %-46s %6s"
+              % (("not checked: %s" % (pr.get("reason") or pr.get("backend")))[:46], _t(t.get("precedent"))))
+    elif not pr["similar"]:
+        print("  4. PRECEDENT  %-46s %6s" % ("none - first time asked", _t(t.get("precedent"))))
+    else:
+        last = pr.get("last_sent")
+        verdict = ("CONFLICT - sent before on a different page" if pr["conflict"]
+                   else "consistent with what was sent" if last
+                   else "seen before, nothing sent yet")
+        print("  4. PRECEDENT  %-46s %6s" % (verdict[:46], _t(t.get("precedent"))))
+        for s in pr["similar"][:3]:
+            print("                %.3f %-13s %-4s %s" % (s["similarity"],
+                  "same question" if s["same_question"] else "similar",
+                  "sent" if s["sent"] else "held", s["text"][:44]))
+        if last:
+            print("                last sent stood on: %s" % (last["policy"]["title"] or last["doc_id"])[:50])
+
     g = out["grounding"]
     draft_step = next((s for s in out["steps"] if s["step"] == "draft"), {})
-    print("  4. DRAFT      %-46s %6s" % (draft_step.get("backend", "?")[:46], _t(t.get("draft"))))
+    print("  5. DRAFT      %-46s %6s" % (draft_step.get("backend", "?")[:46], _t(t.get("draft"))))
     print("                grounding: %s" % g["detail"])
     if draft_step.get("fallback_reason"):
         print("                FELL BACK: %s" % draft_step["fallback_reason"][:60])
@@ -185,7 +215,7 @@ def render(out: dict, elapsed: float, show_draft: bool = True,
         for line in out["draft"].splitlines():
             print("      | %s" % line)
 
-    print("\n  5. GATE       %s" % d["decision"])
+    print("\n  6. GATE       %s" % d["decision"])
     print("                topics: %s" % (", ".join(d["topics"]) or "none"))
     for rid, reason in zip(d["blocked_by"], d["reasons"]):
         print("                %-26s %s" % (rid, reason[:44]))

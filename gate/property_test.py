@@ -39,9 +39,11 @@ def report(ok: bool, label: str, detail: str = "") -> None:
         failures.append(label)
 
 
-def evaluate(topic_list, confidence=0.95, citation=True, quotes=True, category="shipping"):
+def evaluate(topic_list, confidence=0.95, citation=True, quotes=True, category="shipping",
+             conflict=False):
     ticket = gate_mod.build_ticket(
-        "", category, confidence, citation, quotes, topic_override=list(topic_list)
+        "", category, confidence, citation, quotes, topic_override=list(topic_list),
+        conflicts_with_precedent=conflict,
     )
     return gate_mod.decide(ticket)
 
@@ -121,21 +123,23 @@ def main() -> None:
                "" if got == expected else "got %s" % got)
 
     # ---------------------------------------------------------------- P6
-    print("\nP6  exhaustive: every single-topic state x both booleans x floor")
+    print("\nP6  exhaustive: every single-topic state x three booleans x floor")
     combos = 0
     leaks = []
     subsets = [()] + [(t,) for t in sorted(extractor_topics)]
-    for subset, conf, cite, quote in itertools.product(
-        subsets, (0.7199, 0.72, 0.95), (True, False), (True, False)
+    for subset, conf, cite, quote, conflict in itertools.product(
+        subsets, (0.7199, 0.72, 0.95), (True, False), (True, False), (False, True)
     ):
-        out = evaluate(subset, conf, cite, quote)
+        out = evaluate(subset, conf, cite, quote, conflict=conflict)
         combos += 1
-        # Auto-send is legal only when nothing is guarded AND every F6 input is clean.
+        # Auto-send is legal only when nothing is guarded, every F6 input is
+        # clean, AND no already-sent reply would be contradicted (F7).
         should_allow = (
             not (set(subset) & policy_all) and conf >= 0.72 and cite and quote
+            and not conflict
         )
         if out["allowed"] != should_allow:
-            leaks.append((subset, conf, cite, quote, out["decision"]))
+            leaks.append((subset, conf, cite, quote, conflict, out["decision"]))
     report(not leaks, "%d combinations, all as expected" % combos,
            "%d mismatches" % len(leaks) if leaks else "")
     for leak in leaks[:5]:
@@ -168,6 +172,17 @@ def main() -> None:
            str(moved) if moved else "")
     print("      This is the independence property stated as a test: the gate")
     print("      holds even when the classifier is wrong.")
+
+    # ---------------------------------------------------------------- P9
+    print("\nP9  a conflicting precedent blocks on its own, and only F7 fires")
+    out = evaluate([], conflict=True)
+    report(out["decision"] == "ESCALATE" and out["blocked_by"] == ["F7_conflicting_precedent"],
+           "clean ticket + conflict -> ESCALATE via F7 alone",
+           "" if out["blocked_by"] == ["F7_conflicting_precedent"] else str(out["blocked_by"]))
+    out = evaluate([], conflict=False)
+    report(out["decision"] == "AUTO_SEND", "clean ticket + no conflict -> AUTO_SEND")
+    print("      The check compares documents the system itself sent. It never")
+    print("      reads the classifier, so P8 still holds with F7 in the set.")
 
     # ---------------------------------------------------------------- summary
     print()

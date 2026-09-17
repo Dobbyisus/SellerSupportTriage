@@ -1,4 +1,4 @@
-"""The pipeline: classify -> retrieve -> draft -> gate -> log.
+"""The pipeline: classify -> retrieve -> precedent -> draft -> gate -> log.
 
 A FIXED SEQUENCE WITH EXACTLY ONE AGENTIC STEP
     The order never varies, which is what keeps a live demo deterministic. The
@@ -19,6 +19,7 @@ WHAT GETS LOGGED
 import uuid
 
 import backends
+import precedent as precedent_mod
 import settings
 import trail as trail_mod
 
@@ -32,6 +33,7 @@ class Pipeline:
         self.classifier = backends.build_classifier()
         self.drafter = backends.build_drafter()
         self.trail = store or trail_mod.open_trail()
+        self.precedents = precedent_mod.open_store()
 
     # -- the run ----------------------------------------------------------
     def run(self, text: str, ticket_id: str | None = None) -> dict:
@@ -94,7 +96,17 @@ class Pipeline:
         hits = found["results"]
         best = hits[0] if hits else None
 
-        # -- 4. draft -----------------------------------------------------
+        # -- 4. precedent: has another agent already answered this? -------
+        # Compares the ticket, by meaning, against every past ticket. If the
+        # same question was already answered and sent, the agent sees what
+        # went out and which policy page it stood on; if today's page is a
+        # DIFFERENT document, that is a conflicting answer and the gate (F7)
+        # holds it. Excludes this ticket's own id so a re-run cannot be its
+        # own precedent.
+        prec = precedent_mod.lookup(self.precedents, text, best, exclude_id=ticket_id)
+        log("precedent", precedent_mod.step_detail(prec))
+
+        # -- 5. draft -----------------------------------------------------
         drafted = self.drafter.draft(text, best)
         grounding = _verify(drafted["draft"], best)
         log("draft", {
@@ -109,7 +121,7 @@ class Pipeline:
             "citation": _citation(best),
         })
 
-        # -- 5. gate ------------------------------------------------------
+        # -- 6. gate ------------------------------------------------------
         # has_citation is a fact about retrieval, not a hope: the passage must
         # carry a resolvable source_url or the reply cannot be checked.
         has_citation = bool(best and best.get("source_url"))
@@ -119,6 +131,7 @@ class Pipeline:
             confidence=conf["best_cosine"],
             has_citation=has_citation,
             draft_quotes_policy=grounding["draft_quotes_policy"],
+            conflicts_with_precedent=prec["conflict"],
         )
         decision = gate_mod.decide(ticket, ticket_id=ticket_id)
         log("gate", {
@@ -132,6 +145,7 @@ class Pipeline:
                 "retrieval_confidence": conf["best_cosine"],
                 "has_citation": has_citation,
                 "draft_quotes_policy": grounding["draft_quotes_policy"],
+                "conflicts_with_precedent": prec["conflict"],
             },
         })
 
@@ -144,10 +158,25 @@ class Pipeline:
             "best_cosine": conf["best_cosine"],
             "blocked_by": decision["blocked_by"],
             "requeried": requeried,
+            "precedent_conflict": prec["conflict"],
             "steps": n,
             "completed_ms": trail_mod.now_ms(),
         })
         self.trail.put(outcome)
+
+        # This ticket is now a precedent for the next one. Stored AFTER the
+        # trail is complete, and never allowed to fail the run — the trail
+        # row for the precedent step is amended with the error if it does.
+        err = precedent_mod.remember_run(
+            self.precedents, prec,
+            ticket_id=ticket_id, text=text, created_ms=meta["created_ms"],
+            category=category, decision=decision["decision"],
+            blocked_by=decision["blocked_by"], best_hit=best, draft=drafted["draft"],
+        )
+        if err:
+            row = next(s for s in steps if s["step"] == "precedent")
+            row["remember_error"] = err
+            self.trail.put(row)
 
         return {
             "ticket_id": ticket_id,
@@ -159,6 +188,7 @@ class Pipeline:
             "best": best,
             "draft": drafted["draft"],
             "grounding": grounding,
+            "precedent": precedent_mod.public(prec),
             "decision": decision,
             "steps": steps,
         }

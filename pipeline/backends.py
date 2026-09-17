@@ -114,6 +114,7 @@ class LocalRetriever:
             c = self._chunks[i]
             results.append({
                 "chunk_id": c["chunk_id"],
+                "doc_id": c.get("doc_id"),
                 "cosine": round(float(cos), 4),
                 "hybrid_score": round(float(comb), 4) if comb is not None else None,
                 "title": c.get("title"),

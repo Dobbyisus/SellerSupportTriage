@@ -111,6 +111,7 @@ def lambda_handler(event, context):
                 "retriever": settings.RETRIEVER,
                 "drafter": settings.DRAFTER,
                 "trail": settings.TRAIL,
+                "precedent": settings.PRECEDENT,
             })
 
         # The console. Read from disk per request rather than cached at import:

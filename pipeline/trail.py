@@ -105,7 +105,7 @@ class JsonlTrail:
 
 
 class DynamoTrail:
-    """Same records, in DynamoDB. Untested — no table exists yet."""
+    """Same records, in DynamoDB. Serves every deployed request."""
 
     def __init__(self, table_name: str | None = None):
         import boto3
@@ -123,6 +123,26 @@ class DynamoTrail:
             KeyConditionExpression=Key("pk").eq("TICKET#%s" % ticket_id)
         )
         return sorted(resp.get("Items", []), key=lambda r: r["sk"])
+
+    def tickets(self) -> list[dict]:
+        """Every META row, newest first. A SCAN — developer-side only.
+
+        The function's role deliberately holds PutItem and Query and nothing
+        else, so this raises AccessDenied from the Lambda. It exists for
+        `pipeline/precedent.py --backfill`, which runs with the developer's
+        credentials, and for nothing in the request path.
+        """
+        from boto3.dynamodb.conditions import Attr
+
+        rows: list[dict] = []
+        kwargs = {"FilterExpression": Attr("sk").eq("META")}
+        while True:
+            resp = self.table.scan(**kwargs)
+            rows.extend(resp.get("Items", []))
+            if "LastEvaluatedKey" not in resp:
+                break
+            kwargs["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
+        return sorted(rows, key=lambda m: -int(m.get("created_ms", 0)))
 
 
 def _floats_to_decimal(obj):

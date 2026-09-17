@@ -42,6 +42,11 @@ LOCAL_URL = "http://localhost:9200"
 INDEX = os.environ.get("OPENSEARCH_INDEX", "seller-policy")
 PIPELINE = "seller-triage-hybrid"
 
+# Past tickets, one document each, so a new ticket can be checked against what
+# was already answered. Separate index: it grows with every ticket, carries a
+# different mapping, and must never be confused with the frozen policy corpus.
+TICKETS_INDEX = os.environ.get("OPENSEARCH_TICKETS_INDEX", "seller-tickets")
+
 # --------------------------------------------------------------------------
 # Embedding dimension — auto-detected, never hardcoded
 # --------------------------------------------------------------------------
@@ -148,6 +153,29 @@ MIN_SIM = 0.72      # below this, retrieval is not confident -> agent re-queries
 ANSWER_SIM = 0.72   # a passage at or above this is quotable in a draft
 
 CALIBRATED_FOR = "bge-small-en-v1.5 (384d)"
+
+# --------------------------------------------------------------------------
+# Precedent thresholds — ticket-to-ticket cosine, same model as above
+# --------------------------------------------------------------------------
+
+# Measured on the 67 filter tickets, which are all DIFFERENT questions: the
+# nearest neighbour of each one sits at p50 0.791, p90 0.828, max 0.860. Two
+# phrasings of the SAME question ("my listing is suppressed and not showing up
+# in search" / "my listing is not showing up in search results") sit at
+# 0.85-0.89. So:
+#
+#   PRECEDENT_SIM   0.80  "similar enough to show the agent" — worth a look,
+#                         may be a neighbouring question rather than this one
+#   PRECEDENT_SAME  0.86  "the same question" — above the highest similarity
+#                         any two distinct filter tickets reach. Only at this
+#                         level does a different policy page count as a
+#                         conflicting answer, because below it the two tickets
+#                         may legitimately be about different things.
+#
+# Both are raw cosines and belong to bge-small like MIN_SIM does.
+PRECEDENT_SIM = 0.80
+PRECEDENT_SAME = 0.86
+PRECEDENT_K = 5
 
 
 def warn_if_thresholds_stale() -> str | None:

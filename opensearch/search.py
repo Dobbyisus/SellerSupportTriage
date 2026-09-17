@@ -171,6 +171,7 @@ def search(os_client, text: str, category: str | None = None, k: int | None = No
         results.append(
             {
                 "chunk_id": cid,
+                "doc_id": src.get("doc_id"),
                 "hybrid_score": round(hit["_score"], 4),
                 # None means the chunk placed outside the top 50 by pure
                 # meaning — it was ranked here by the lexical half.
