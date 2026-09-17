@@ -1,0 +1,52 @@
+# Synonyms for the OpenSearch keyword (BM25) half of hybrid search.
+#
+# WHY THIS FILE EXISTS. Sellers type the short form; Amazon policy spells it
+# out. "my LSR is bad" and "Late Shipment Rate" share no tokens, so word
+# matching scores them as unrelated and the keyword half of hybrid search
+# contributes nothing on exactly the queries the demo runs on.
+#
+# Solr format, for the synonym_graph token filter, applied at SEARCH time (not
+# index time) so the list can change without re-indexing.
+# Comma-separated terms on a line are all equivalent.
+
+# --- performance metrics (the four the demo leans on) ---
+lsr, late shipment rate, late shipments, shipping late
+odr, order defect rate, order defects
+vtr, valid tracking rate, valid tracking, tracking rate
+cr, cancellation rate, cancellations, cancelled orders
+otdr, on-time delivery rate, on time delivery rate, late deliveries
+ahr, account health rating, account health
+
+# --- claims and returns ---
+a-to-z, atoz, a to z, a-to-z guarantee, a to z guarantee, az claim
+chargeback, chargebacks, card dispute, bank dispute
+rma, return authorization, return authorisation
+restocking fee, restock fee
+
+# --- money ---
+disbursement, disbursements, payout, payouts, transfer to bank, settlement
+reserve, account level reserve, held funds, unavailable balance, reserved funds
+withheld, withholding, payment hold, funds on hold, money on hold
+
+# --- account actions ---
+deactivation, deactivated, suspension, suspended, account closed
+reinstatement, reinstate, reinstated, appeal, poa, plan of action
+violation, policy violation, infringement
+
+# --- listings ---
+suppressed, suppression, hidden listing, not showing in search, delisted
+asin, product listing, detail page
+gated, gating, category approval, ungating, approval required
+
+# --- programs and terms ---
+fba, fulfillment by amazon, fulfilment by amazon
+fbm, mfn, seller fulfilled, merchant fulfilled, seller-fulfilled
+sfp, seller fulfilled prime
+bsa, business solutions agreement, selling agreement
+edd, estimated delivery date
+sla, service level
+
+# --- how sellers phrase things ---
+seller central, sc
+buyer, customer, shopper
+amazon store, marketplace
