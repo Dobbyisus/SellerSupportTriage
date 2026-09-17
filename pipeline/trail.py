@@ -1,0 +1,142 @@
+"""The decision trail — every step of every ticket, in DynamoDB's shape.
+
+Records use the single-table layout from the architecture:
+
+    pk = TICKET#<id>     sk = META        the ticket and its outcome
+    pk = TICKET#<id>     sk = STEP#<n>    one row per pipeline step
+
+One query on the partition key returns the whole trail in order, so the audit
+log and the console's data source are the same read. That is deliberate: the
+thing shown to a judge is the thing the system actually wrote.
+
+The local store writes the identical records to a JSONL file, so switching to
+DynamoDB changes where rows land and nothing about their shape.
+"""
+
+import json
+import time
+from pathlib import Path
+from typing import Protocol
+
+import settings
+
+
+def now_ms() -> int:
+    return int(time.time() * 1000)
+
+
+def meta_item(ticket_id: str, text: str) -> dict:
+    return {
+        "pk": "TICKET#%s" % ticket_id,
+        "sk": "META",
+        "ticket_id": ticket_id,
+        "text": text,
+        "created_ms": now_ms(),
+        "backends": settings.summary(),
+        "status": "in_progress",
+    }
+
+
+def step_item(ticket_id: str, n: int, step: str, detail: dict) -> dict:
+    return {
+        "pk": "TICKET#%s" % ticket_id,
+        # Zero-padded so lexical sort matches numeric order — DynamoDB sorts
+        # sort keys as strings, and STEP#10 must not fall between 1 and 2.
+        "sk": "STEP#%03d" % n,
+        "ticket_id": ticket_id,
+        "n": n,
+        "step": step,
+        "at_ms": now_ms(),
+        **detail,
+    }
+
+
+class Trail(Protocol):
+    def put(self, item: dict) -> None: ...
+    def query(self, ticket_id: str) -> list[dict]: ...
+
+
+class JsonlTrail:
+    """Append-only local file. Same records DynamoDB would hold."""
+
+    def __init__(self, path: Path | None = None):
+        self.path = Path(path or settings.TRAIL_PATH)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+    def put(self, item: dict) -> None:
+        with self.path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+    def query(self, ticket_id: str) -> list[dict]:
+        """Last write wins per (pk, sk), mirroring DynamoDB's put_item.
+
+        The file is append-only, so a META row written at the start and again
+        at the end appears twice on disk. DynamoDB would have overwritten it,
+        and the local store has to behave the same way or the console shows a
+        ticket as both in_progress and complete.
+        """
+        pk = "TICKET#%s" % ticket_id
+        latest: dict[str, dict] = {}
+        for r in self.all():
+            if r.get("pk") == pk:
+                latest[r["sk"]] = r
+        return [latest[k] for k in sorted(latest)]
+
+    def all(self) -> list[dict]:
+        if not self.path.exists():
+            return []
+        return [
+            json.loads(line)
+            for line in self.path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    def tickets(self) -> list[dict]:
+        """Every META row, newest first — the console's queue view."""
+        metas = [r for r in self.all() if r.get("sk") == "META"]
+        # A ticket re-run overwrites nothing in an append-only file, so keep
+        # the most recent META per ticket_id.
+        latest: dict[str, dict] = {}
+        for m in metas:
+            prev = latest.get(m["ticket_id"])
+            if prev is None or m["created_ms"] >= prev["created_ms"]:
+                latest[m["ticket_id"]] = m
+        return sorted(latest.values(), key=lambda m: -m["created_ms"])
+
+
+class DynamoTrail:
+    """Same records, in DynamoDB. Untested — no table exists yet."""
+
+    def __init__(self, table_name: str | None = None):
+        import boto3
+
+        self.table_name = table_name or settings.DYNAMO_TABLE
+        self.table = boto3.resource("dynamodb").Table(self.table_name)
+
+    def put(self, item: dict) -> None:
+        self.table.put_item(Item=_floats_to_decimal(item))
+
+    def query(self, ticket_id: str) -> list[dict]:
+        from boto3.dynamodb.conditions import Key
+
+        resp = self.table.query(
+            KeyConditionExpression=Key("pk").eq("TICKET#%s" % ticket_id)
+        )
+        return sorted(resp.get("Items", []), key=lambda r: r["sk"])
+
+
+def _floats_to_decimal(obj):
+    """DynamoDB rejects float. Convert on the way in."""
+    from decimal import Decimal
+
+    if isinstance(obj, float):
+        return Decimal(str(round(obj, 6)))
+    if isinstance(obj, dict):
+        return {k: _floats_to_decimal(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_floats_to_decimal(v) for v in obj]
+    return obj
+
+
+def open_trail() -> Trail:
+    return DynamoTrail() if settings.TRAIL == "dynamodb" else JsonlTrail()

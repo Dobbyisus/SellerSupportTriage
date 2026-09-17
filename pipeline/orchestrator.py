@@ -1,0 +1,203 @@
+"""The pipeline: classify -> retrieve -> draft -> gate -> log.
+
+A FIXED SEQUENCE WITH EXACTLY ONE AGENTIC STEP
+    The order never varies, which is what keeps a live demo deterministic. The
+    single place the system decides something for itself is the re-query: when
+    the first retrieval does not clear the confidence floor, it tries again
+    with a synonym-expanded query and keeps whichever attempt was better.
+
+    Both attempts are written to the trail. A judge can see the agent decide to
+    look again, and see whether it helped.
+
+WHAT GETS LOGGED
+    Every step, in the DynamoDB single-table shape, including the steps that
+    failed and the re-query that may not have helped. The trail is the product,
+    not a debug artifact — so it records what happened rather than what we
+    would prefer to show.
+"""
+
+import uuid
+
+import backends
+import settings
+import trail as trail_mod
+
+import config as os_config  # opensearch/config.py
+import gate as gate_mod     # gate/gate.py
+
+
+class Pipeline:
+    def __init__(self, store=None):
+        self.retriever = backends.build_retriever()
+        self.classifier = backends.build_classifier()
+        self.drafter = backends.build_drafter()
+        self.trail = store or trail_mod.open_trail()
+
+    # -- the run ----------------------------------------------------------
+    def run(self, text: str, ticket_id: str | None = None) -> dict:
+        ticket_id = ticket_id or uuid.uuid4().hex[:8]
+        steps: list[dict] = []
+        n = 0
+
+        def log(step: str, detail: dict) -> None:
+            nonlocal n
+            n += 1
+            item = trail_mod.step_item(ticket_id, n, step, detail)
+            self.trail.put(item)
+            steps.append(item)
+
+        meta = trail_mod.meta_item(ticket_id, text)
+        self.trail.put(meta)
+
+        # -- 1. classify --------------------------------------------------
+        # The local classifier votes over a retrieval probe. That probe is a
+        # real retrieval call, so it is named in the trail rather than hidden.
+        cls = self.classifier.classify(text, probe=self.retriever.search)
+        category = cls["category"]
+        log("classify", {
+            "category": category,
+            "backend": cls["backend"],
+            "detail": cls.get("detail", ""),
+            "votes": cls.get("votes"),
+        })
+
+        # -- 2. retrieve --------------------------------------------------
+        found = self.retriever.search(text, category, settings.TOP_K)
+        conf = found["confidence"]
+        log("retrieve", {
+            "backend": found["backend"],
+            "best_cosine": conf["best_cosine"],
+            "min_sim": conf["min_sim"],
+            "confident": conf["confident"],
+            "top": _summarize(found["results"]),
+        })
+
+        # -- 3. re-query (the one agentic step) ---------------------------
+        requeried = False
+        if not conf["confident"]:
+            retry = self.retriever.search(text, category, settings.TOP_K, expand=True)
+            requeried = True
+            improved = retry["confidence"]["best_cosine"] > conf["best_cosine"]
+            log("requery", {
+                "reason": "best cosine %.4f below floor %.2f"
+                          % (conf["best_cosine"], conf["min_sim"]),
+                "strategy": "synonym-expanded query, re-embedded",
+                "expanded_with": retry.get("expanded_with", [])[:12],
+                "best_cosine": retry["confidence"]["best_cosine"],
+                "improved": improved,
+                "kept": "retry" if improved else "original",
+                "top": _summarize(retry["results"]),
+            })
+            if improved:
+                found, conf = retry, retry["confidence"]
+
+        hits = found["results"]
+        best = hits[0] if hits else None
+
+        # -- 4. draft -----------------------------------------------------
+        drafted = self.drafter.draft(text, best)
+        grounding = _verify(drafted["draft"], best)
+        log("draft", {
+            "backend": drafted["backend"],
+            "refused": drafted["refused"],
+            "fallback_reason": drafted.get("fallback_reason"),
+            "draft": drafted["draft"],
+            "draft_quotes_policy": grounding["draft_quotes_policy"],
+            "grounding_detail": grounding["detail"],
+            "verified_quotes": grounding.get("verified", []),
+            "urls_invented": grounding.get("urls_invented", []),
+            "citation": _citation(best),
+        })
+
+        # -- 5. gate ------------------------------------------------------
+        # has_citation is a fact about retrieval, not a hope: the passage must
+        # carry a resolvable source_url or the reply cannot be checked.
+        has_citation = bool(best and best.get("source_url"))
+        ticket = gate_mod.build_ticket(
+            text,
+            category=category,
+            confidence=conf["best_cosine"],
+            has_citation=has_citation,
+            draft_quotes_policy=grounding["draft_quotes_policy"],
+        )
+        decision = gate_mod.decide(ticket, ticket_id=ticket_id)
+        log("gate", {
+            "decision": decision["decision"],
+            "blocked_by": decision["blocked_by"],
+            "reasons": decision["reasons"],
+            "provenance": decision["provenance"],
+            "topics": decision["topics"],
+            "inputs": {
+                "category": category,
+                "retrieval_confidence": conf["best_cosine"],
+                "has_citation": has_citation,
+                "draft_quotes_policy": grounding["draft_quotes_policy"],
+            },
+        })
+
+        # -- close out ----------------------------------------------------
+        outcome = dict(meta)
+        outcome.update({
+            "status": "complete",
+            "decision": decision["decision"],
+            "category": category,
+            "best_cosine": conf["best_cosine"],
+            "blocked_by": decision["blocked_by"],
+            "requeried": requeried,
+            "steps": n,
+            "completed_ms": trail_mod.now_ms(),
+        })
+        self.trail.put(outcome)
+
+        return {
+            "ticket_id": ticket_id,
+            "text": text,
+            "category": category,
+            "confidence": conf,
+            "requeried": requeried,
+            "results": hits,
+            "best": best,
+            "draft": drafted["draft"],
+            "grounding": grounding,
+            "decision": decision,
+            "steps": steps,
+        }
+
+
+def _verify(draft: str, hit: dict | None) -> dict:
+    import drafting
+
+    if hit is None:
+        return {"draft_quotes_policy": False, "detail": "nothing retrieved to ground against",
+                "verified": []}
+    # The title and heading path are shown to the model in the prompt, so a
+    # quote lifted from them is grounded too — see verify_grounding's docstring.
+    return drafting.verify_grounding(
+        draft, hit.get("text", ""),
+        extra_sources=[hit.get("title") or "", hit.get("heading_path") or ""],
+        allowed_urls=[hit.get("source_url") or ""],
+    )
+
+
+def _summarize(results: list[dict]) -> list[dict]:
+    """Trail rows keep the identity of every hit, not the passage text."""
+    return [
+        {
+            "chunk_id": r["chunk_id"],
+            "cosine": r["cosine"],
+            "title": r["title"],
+            "category": r["category"],
+            "doc_type": r["doc_type"],
+        }
+        for r in results[:5]
+    ]
+
+
+def _citation(hit: dict | None) -> str | None:
+    if not hit:
+        return None
+    label = hit.get("heading_path") or hit.get("title") or hit["chunk_id"]
+    if hit.get("section_id"):
+        label = "%s, %s" % (label, hit["section_id"])
+    url = hit.get("source_url")
+    return "%s%s" % (label, " — %s" % url if url else " [no source URL]")
