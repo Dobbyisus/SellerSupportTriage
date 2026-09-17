@@ -9,12 +9,28 @@
 #      is at or over the 250MB unzipped limit for zip deployments. The
 #      container limit is 10GB.
 #   3. The embedding model has to be baked in — see below.
+#
+# HOW TO BUILD — THE FLAGS ARE NOT OPTIONAL
+#
+#     docker build --provenance=false --sbom=false -t seller-triage:latest .
+#
+# BuildKit defaults to an OCI manifest LIST with provenance/SBOM attestation
+# manifests attached. Lambda rejects that and accepts only a single manifest.
+# The failure does not appear at build or at push — both succeed — it appears
+# later at CreateFunction/UpdateFunctionCode, with an error about the image
+# manifest that says nothing about attestations. Cost us a full rebuild cycle
+# once; do not drop these flags.
+#
+# (Plain OCI media types are fine. It was the attestation list, not OCI.)
 
 FROM public.ecr.aws/lambda/python:3.13
 
-# Pinned to the versions the measured numbers were produced against.
-COPY requirements.txt ${LAMBDA_TASK_ROOT}/
-RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements.txt
+# Runtime dependencies only — NOT requirements.txt, which also carries the
+# corpus-collection tools (playwright, pdfplumber, beautifulsoup4). Those run
+# offline on a dev machine and are never called here; installing them added
+# ~150MB to the image and to every push.
+COPY requirements-lambda.txt ${LAMBDA_TASK_ROOT}/
+RUN pip install --no-cache-dir -r ${LAMBDA_TASK_ROOT}/requirements-lambda.txt
 
 # ---------------------------------------------------------------------------
 # Bake the embedding model into the image.

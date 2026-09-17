@@ -1,0 +1,42 @@
+# Everything here is excluded from the build context — the bundle Docker ships
+# to the daemon before the first instruction runs.
+#
+# WHY THIS FILE MATTERS: SellerSupport_Docs/ alone is 119 MB. Without this,
+# every build uploads it (plus .git) only for the Dockerfile to never copy it.
+# Slow builds, for nothing.
+
+# The archived corpus — build-time input to build_chunks.py, never read at
+# runtime. chunks.jsonl is the only artefact the container needs.
+SellerSupport_Docs/
+
+# Notes, planning, audit trail
+claude_reference_CSA/
+*.md
+*.pdf
+*.png
+*.jpg
+
+# Git
+.git/
+.gitignore
+
+# Data the container does not use
+knowledge_base.json
+filter_queries.tsv
+*.npz
+pipeline/decision_trail.jsonl
+opensearch/evaluate_baseline.json
+opensearch/evaluate_results.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local and sensitive — never bake credentials into an image
+.env
+.env.*
+.aws/
+*.pem
+*.key
