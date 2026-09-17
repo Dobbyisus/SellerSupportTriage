@@ -234,18 +234,62 @@ const STOPS = [
   ["5","DECIDE","The rulebook says whether a person must look first"],
 ];
 
+// ---------------------------------------------------------------- demo tickets
+// Six real runs from the decision trail, kept on the rail so the console is
+// never blank. Anything the operator raises hangs in front of them.
+const SC = "https://sellercentral.amazon.com/help/hub/reference/external/";
+const BSA = "https://m.media-amazon.com/images/G/01/rainier/help./1.1_BSA_PDF_English.pdf";
+const seedBase = { state: "done", seed: true, provenance: [], refused: false, unverified: [], urlsInvented: [], detail: "" };
+const SEEDS = [
+  { id: "ac5d28b0", cat: "payments", verdict: "ESCALATE", codes: ["F2_payments", "F6_ungrounded"], topics: ["payment_hold"], steps: 5,
+    text: "my payment is on hold and I don't know why", close: false,
+    top: { title: "When will I be paid?", path: "I'm still not seeing my money. What should I do?", url: SC + "G14911?locale=en-US" },
+    requery: { expanded: ["funds", "money", "withheld", "withholding"], better: true, close: false, top: { title: "Amazon Services Business Solutions Agreement", path: "General Terms › Service Fee Payments; Receipt of Sales Proceeds", url: BSA } },
+    quotesOk: false, verified: [], unverified: ["To be eligible for fund disbursement, you must refrain from deceptive, fraudulent, or illegal activity and remain in compliance with our Program Policies."],
+    draft: "Thank you for contacting Seller Support about your message: “my payment is on hold and I don't know why”.\n\nThe applicable policy states: \"To be eligible for fund disbursement, you must refrain from deceptive, fraudulent, or illegal activity and remain in compliance with our Program Policies.\"\n\nPlease review the policy in full at the link below, which covers the requirements for your account.\n\nSource: Amazon Services Business Solutions Agreement › General Terms" },
+  { id: "0c581be8", cat: "shipping", verdict: "AUTO_SEND", codes: [], topics: [], steps: 4,
+    text: "how do I change the handling time on my listings", close: true,
+    top: { title: "Manage your delivery time", path: "Modify your delivery time", url: SC + "G202167920?locale=en-US" }, requery: null, quotesOk: true,
+    verified: ["You can view or update your account level default handling time in the General Shipping Settings tab under the Shipping settings.", "If your account has Automated handling time enabled, it will automatically calculate and assign the recommended SKU-specific handling time to each product based on data from your historic performance."],
+    draft: "You can update the handling time for your listings in several ways. As the policy states, \"You can view or update your account level default handling time in the General Shipping Settings tab under the Shipping settings.\" This allows you to set a baseline handling time for all your products.\n\nFor specific products where you expect longer handling times, you can adjust them individually using Seller Central’s Manage Inventory tool or in bulk via inventory file templates uploads. The passage also notes, \"If your account has Automated handling time enabled, it will automatically calculate and assign the recommended SKU-specific handling time to each product based on data from your historic performance.\"\n\nTo proceed, navigate to the appropriate section in Seller Central based on whether you need to update your default handling time or make product-specific changes.\n\nSource: Manage your delivery time › Modify your delivery time" },
+  { id: "716df49d", cat: "account", verdict: "ESCALATE", codes: ["F1_account_enforcement"], topics: ["account_deactivation"], steps: 4,
+    text: "my parcel is running late and the buyer is angry, and now amazon says my account could be deactivated if it happens again", close: true,
+    top: { title: "Selling account reviews for seller-fulfilled orders", path: "What happens during an account review?", url: SC + "G200320980?locale=en-US" }, requery: null, quotesOk: true,
+    verified: ["We will continue to review your account over the next 30 days for evidence which supports delivery of recent seller-fulfilled orders."],
+    draft: "Thank you for contacting Seller Support about your message: my parcel is running late and the buyer is angry, and now amazon says my account could be...\n\nThe applicable policy states: \"We will continue to review your account over the next 30 days for evidence which supports delivery of recent seller-fulfilled orders.\"\n\nPlease review the policy in full at the link below, which covers the requirements for your account.\n\nSource: Selling account reviews for seller-fulfilled orders › What happens during an account review?" },
+  { id: "a80d1a61", cat: "account", verdict: "ESCALATE", codes: ["F5_legal"], topics: ["ip_infringement"], steps: 4,
+    text: "I received a trademark infringement complaint against one of my listings", close: true,
+    top: { title: "Intellectual Property Policy", path: "Amazon’s IP enforcement", url: SC + "G201361070?locale=en-US" }, requery: null, quotesOk: true,
+    verified: ["Responding to an IP infringement notice. If you receive a notice or warning for infringement and you believe the rights owner or Amazon made an error, you may appeal or dispute the claim."],
+    draft: "Thank you for contacting Seller Support about your message: I received a trademark infringement complaint against one of my listings.\n\nThe applicable policy states: \"Responding to an IP infringement notice. If you receive a notice or warning for infringement and you believe the rights owner or Amazon made an error, you may appeal or dispute the claim.\"\n\nPlease review the policy in full at the link below, which covers the requirements for your account.\n\nSource: Intellectual Property Policy › Amazon’s IP enforcement" },
+  { id: "4b479819", cat: "listings", verdict: "ESCALATE", codes: ["F4_listing_suppression"], topics: ["listing_suppressed"], steps: 4,
+    text: "my listing is suppressed and not showing up in search", close: true,
+    top: { title: "Suppressed listings", path: "Suppressed images", url: SC + "G200898440?locale=en-US" }, requery: null, quotesOk: true,
+    verified: ["These requirements also apply to listings with variations. For example, if a listing has different sizes, its parent SKU and child SKUs for each size must meet the requirements above."],
+    draft: "Thank you for contacting Seller Support about your message: my listing is suppressed and not showing up in search.\n\nThe applicable policy states: \"These requirements also apply to listings with variations. For example, if a listing has different sizes, its parent SKU and child SKUs for each size must meet the requirements above.\"\n\nPlease review the policy in full at the link below, which covers the requirements for your account.\n\nSource: Suppressed listings › Suppressed images" },
+  { id: "8d21eaf5", cat: "payments", verdict: "ESCALATE", codes: ["F6_ungrounded"], topics: [], steps: 5,
+    text: "My payments are not going through what to do?", close: false,
+    top: { title: "When will I be paid?", path: "I'm still not seeing my money. What should I do?", url: SC + "G14911?locale=en-US" },
+    requery: { expanded: [], better: false, close: false, top: null }, quotesOk: false,
+    verified: ["It can take up to five business days for your money to appear in your bank account after we initiate payment."], urlsInvented: ["https://sellercentral.amazon.com/help/hub/reference/external"],
+    draft: "We understand you’re concerned about payments not going through. According to Amazon’s payment policy, \"It can take up to five business days for your money to appear in your bank account after we initiate payment.\" If it has been longer than this timeframe, you can track the payment using the Bank Transfer ID found at the top of your Payments report.\n\nIf you expected a payment but did not receive one, check your Account Health in Seller Central for details about your account performance and payment policy.\n\nSource: When will I be paid? › I'm still not seeing my money. What should I do?" },
+].map(s => Object.assign({}, seedBase, s));
+
 // ---------------------------------------------------------------- state
-let tickets = [];          // newest first
+let tickets = [];          // newest first; the operator's own tickets, then the demo set
 let selectedId = null;
 let stage = 5;
 let runs = 0;
 let arriving = null;
+let animatedRun = -1;      // the trail only redraws itself when the open ticket changes
 
-try { tickets = JSON.parse(localStorage.getItem("triage.rail") || "[]"); } catch (e) { tickets = []; }
-if (tickets.length) selectedId = tickets[0].id;
+let saved = [];
+try { saved = JSON.parse(localStorage.getItem("triage.rail") || "[]"); } catch (e) { saved = []; }
+tickets = saved.concat(SEEDS);
+selectedId = tickets[0].id;
 
 function persist(){
-  try { localStorage.setItem("triage.rail", JSON.stringify(tickets.filter(t => t.state === "done").slice(0, 30))); } catch (e) {}
+  try { localStorage.setItem("triage.rail", JSON.stringify(tickets.filter(t => t.state === "done" && !t.seed).slice(0, 30))); } catch (e) {}
 }
 
 // Turn the API response into what the console shows. Everything here is read
@@ -319,7 +363,7 @@ function renderRail(){
       const cls = (s === "skip" || s === "wait") ? "pale" : s === "flag" ? "flag" : s === "stop" ? "end" : "";
       return '<i class="' + cls + '"></i>';
     }).join("");
-    const kicker = t.state === "busy" ? "RUNNING NOW" : t.state === "error" ? "NO ANSWER" : (t.requery ? "SEARCHED TWICE" : "FROM THE QUEUE");
+    const kicker = t.state === "busy" ? "RUNNING NOW" : t.state === "error" ? "NO ANSWER" : t.seed ? "DEMO TICKET" : (t.requery ? "SEARCHED TWICE" : "FROM THE QUEUE");
     const verdict = t.state === "busy" ? "WORKING" : t.state === "error" ? "ERROR" : t.verdict;
     return '<div class="hang"><div class="strap"></div><div class="clip"></div>' +
       '<button type="button" class="tk' + (t.id === selectedId ? " on" : "") + (t.state === "busy" ? " busy" : "") + (t.id === arriving ? " arriving" : "") +
@@ -342,7 +386,10 @@ function renderTrail(){
   const el = $("#trail");
   const t = tickets.find(x => x.id === selectedId);
   if (!t) { el.innerHTML = '<div class="sum"><span class="text" style="color:var(--sec)">Nothing open yet.</span></div>'; return; }
-  const ab = runs % 2 ? "b" : "a";
+  // Draw the trail only when a different ticket is opened; picking a stop just moves the highlight.
+  const animate = runs !== animatedRun;
+  animatedRun = runs;
+  const ab = animate ? (runs % 2 ? "b" : "a") : "";
   const shortOf = i => {
     if (t.state === "busy") return i === 0 ? "received" : "working…";
     if (t.state === "error") return i === 0 ? "received" : "—";
@@ -362,11 +409,15 @@ function renderTrail(){
       STOPS.map((s, i) => {
         const st = stateOf(t, i);
         const cls = (st === "skip" || st === "wait") ? "pale" : st === "flag" ? "flag" : st === "stop" ? "end" : "";
-        return '<button type="button" class="stop ' + ab + ' ' + cls + (i === stage ? " sel" : "") + '" style="animation-delay:' + (i * 0.17).toFixed(2) + 's" data-i="' + i + '">' +
+        return '<button type="button" class="stop ' + ab + ' ' + cls + (i === stage ? " sel" : "") + '" style="' + (animate ? "animation-delay:" + (i * 0.17).toFixed(2) + "s" : "") + '" data-i="' + i + '">' +
           '<span class="tip">' + esc(s[2]) + '</span><span class="dot">' + s[0] + '</span><span class="name">' + s[1] + '</span><span class="short">' + esc(shortOf(i)) + '</span></button>';
       }).join("") +
     '</div></div>';
-  el.querySelectorAll(".stop").forEach(b => b.addEventListener("click", () => { stage = +b.dataset.i; renderTrail(); renderStage(); }));
+  el.querySelectorAll(".stop").forEach(b => b.addEventListener("click", () => {
+    stage = +b.dataset.i;
+    el.querySelectorAll(".stop").forEach(x => x.classList.toggle("sel", x === b));
+    renderStage();
+  }));
 }
 
 function renderStage(){
