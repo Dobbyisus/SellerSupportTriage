@@ -207,7 +207,22 @@ class VoteClassifier:
         for h in hits:
             # Weight each vote by its similarity: a 0.85 match should count for
             # more than a 0.60 one that scraped into the top five.
-            votes[h["category"]] = votes.get(h["category"], 0.0) + h["cosine"]
+            #
+            # cosine can be None on the OpenSearch path. search.py runs the
+            # exact-cosine query over the top 50 only, so a hit that BM25
+            # promoted from outside that set has no measured cosine — see
+            # search.py's `if cid in cos_by_id else None`. The in-process
+            # retriever scores every chunk and never produces None, which is
+            # why this only ever surfaced against a live hybrid index.
+            #
+            # Weight those 0: vote strength should come from measured
+            # similarity, and an unmeasured hit has not earned any. Do NOT
+            # "fix" this by defaulting cosine to 0.0 in search.py — None there
+            # honestly means "not measured", and the trail should keep saying so.
+            cosine = h.get("cosine")
+            if cosine is None:
+                continue
+            votes[h["category"]] = votes.get(h["category"], 0.0) + cosine
 
         if not votes:
             return {"category": "account", "backend": self.name,
