@@ -90,32 +90,77 @@
   @keyframes slide-in{from{transform:translateX(-190px) translateY(-4px) rotate(-5deg);opacity:0}60%{transform:translateX(8px) translateY(-4px) rotate(1deg);opacity:1}to{transform:translateY(-4px);opacity:1}}
   .tk.arriving{animation:slide-in .5s cubic-bezier(.22,.9,.3,1)}
 
-  /* the trail */
-  .trail{height:196px;flex-shrink:0;padding:13px 24px 0;background:var(--panel);border-bottom:1px solid var(--line);display:flex;flex-direction:column}
-  .trail .sum{display:flex;align-items:center;gap:12px;min-height:30px}
-  .trail .sum .cat{font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:var(--sec);border:1px solid var(--line);border-radius:3px;padding:2px 7px}
-  .trail .sum .text{flex-grow:1;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .trail .sum .why{font-size:12.5px;color:var(--sec);white-space:nowrap}
-  .trail .sum .pill{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.03em;color:#fff;border-radius:4px;padding:6px 12px;background:var(--verdict)}
-  .trail .track{position:relative;flex-grow:1;padding-top:44px}
-  .trail .line{position:absolute;left:7.14%;top:70px;height:2px;background:repeating-linear-gradient(90deg,#A79F8C 0 5px,transparent 5px 11px)}
-  @keyframes grow-a{from{width:0}to{width:85.72%}} @keyframes grow-b{from{width:0}to{width:85.72%}}
-  .line.a{animation:grow-a .9s cubic-bezier(.4,0,.2,1) both} .line.b{animation:grow-b .9s cubic-bezier(.4,0,.2,1) both}
-  .trail .stops{position:relative;display:flex;align-items:flex-start}
-  .stop{flex:1 1 0;position:relative;padding:10px 4px 0;background:transparent;border:0;display:flex;flex-direction:column;align-items:center;gap:6px}
-  @keyframes pop-a{from{opacity:0;transform:translateY(8px) scale(.6)}to{opacity:1;transform:none}} @keyframes pop-b{from{opacity:0;transform:translateY(8px) scale(.6)}to{opacity:1;transform:none}}
-  .stop.a{animation:pop-a .32s cubic-bezier(.2,.9,.3,1.2) both} .stop.b{animation:pop-b .32s cubic-bezier(.2,.9,.3,1.2) both}
-  .stop .tip{position:absolute;bottom:100%;left:50%;margin-left:-124px;margin-bottom:6px;width:248px;padding:6px 9px;border-radius:5px;background:var(--squid);color:#fff;font-size:11px;line-height:1.35;text-align:center;pointer-events:none;opacity:0;transition:opacity .12s}
-  .stop:hover .tip,.stop:focus-visible .tip{opacity:1}
-  .stop .dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--squid);background:var(--squid);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:600}
-  .stop.pale .dot{border-style:dashed;border-color:var(--mute);background:var(--page);color:var(--mute)}
-  .stop.flag .dot{border-color:var(--verdict);background:#fff;color:var(--verdict)}
-  .stop.end .dot{border-color:var(--verdict);background:var(--verdict);color:#fff}
-  .stop.sel .dot{box-shadow:0 0 0 4px #FFE2B0}
-  .stop .name{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--sec)}
-  .stop.pale .name{color:var(--mute)} .stop.sel .name{color:var(--ink);font-weight:700}
-  .stop .short{font-size:11px;color:var(--sec)}
-
+  /* the timeline — the run replayed, one row per stop, on an axis the operator can drag */
+  .trail{flex-shrink:0;padding:14px 24px 0;background:var(--page)}
+  .tl{--gutter:172px;--meta:264px;--pad:12px;--row:24px;--t:0;position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .tl .hd{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 14px;border-bottom:1px solid var(--line2)}
+  .tl .hd .dot{width:7px;height:7px;border-radius:50%;background:var(--mute);flex-shrink:0;transition:background .3s}
+  .tl[data-run=playing] .hd .dot{background:var(--orange);animation:pulse 1.1s ease-in-out infinite}
+  .tl .hd .cat{font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:var(--sec);border:1px solid var(--line);border-radius:3px;padding:2px 7px;flex-shrink:0}
+  .tl .hd .text{flex-grow:1;min-width:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tl .hd .why{font-size:12px;color:var(--sec);white-space:nowrap}
+  .tl .hd .took{font-family:var(--mono);font-size:10.5px;color:var(--mute);white-space:nowrap}
+  .tl .hd .pill{font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:.03em;color:#fff;border-radius:4px;padding:5px 10px;background:var(--verdict);flex-shrink:0}
+  .tl .box{position:absolute;top:0;bottom:0;left:calc(var(--gutter) + var(--pad));right:calc(var(--meta) + var(--pad))}
+  .tl .ruler{position:relative;display:flex;align-items:center;height:22px;padding:0 var(--pad);border-bottom:1px solid var(--line2)}
+  .tl .ruler .k1{width:var(--gutter);flex-shrink:0;padding-left:4px}
+  .tl .ruler .k2{width:var(--meta);flex-shrink:0;margin-left:auto;text-align:right}
+  .tl .ruler .n{position:absolute;top:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:10px;color:var(--sec)}
+  .tl .rows{position:relative;padding:4px 0}
+  .tl .rows ol{list-style:none;margin:0;padding:0;position:relative}
+  .tl .grid{pointer-events:none} .tl .grid i{position:absolute;top:0;bottom:0;width:1px;background:var(--line2)}
+  .tl .row{position:relative;display:flex;align-items:center;height:var(--row);padding:0 var(--pad);transition:background .15s}
+  .tl .row[data-sel=true]{background:#F3F5F5}
+  .tl .row[data-state=running]{background:#FFF4DF}
+  .tl .row .guide{position:absolute;top:0;bottom:0;left:calc(var(--pad) + 11px);width:1px;background:var(--line)}
+  .tl .lab{position:relative;display:flex;align-items:center;gap:6px;width:var(--gutter);height:100%;flex-shrink:0;padding:0 8px 0 4px;border:0;border-radius:4px;background:transparent;text-align:left;color:var(--ink)}
+  .tl .lab:hover{background:#E9ECEC}
+  .tl .lab:focus-visible{outline:2px solid var(--orange);outline-offset:-2px}
+  .tl .lab svg{width:13px;height:13px;flex-shrink:0;color:var(--sec);transition:color .2s}
+  .tl .row[data-state=queued] .lab svg{color:var(--mute)}
+  .tl .row[data-kind=model]:not([data-state=queued]) .lab svg{color:#E47911}
+  .tl .nm{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .2s}
+  .tl .row[data-state=queued] .nm{color:var(--mute)}
+  .tl .row[data-sel=true] .nm{color:var(--ink);font-weight:700}
+  .tl .x2{flex-shrink:0;font-family:var(--mono);font-size:9px;line-height:14px;padding:0 4px;border:1px solid var(--line);border-radius:3px;color:var(--sec)}
+  .tl .tip{position:absolute;bottom:100%;left:0;z-index:3;margin-bottom:4px;width:250px;padding:6px 9px;border-radius:5px;background:var(--squid);color:#fff;font-family:var(--sans);font-size:11px;letter-spacing:0;line-height:1.35;pointer-events:none;opacity:0;transition:opacity .12s}
+  .tl .lab:hover .tip,.tl .lab:focus-visible .tip{opacity:1}
+  .tl .trk{position:relative;flex-grow:1;height:100%}
+  .tl .bar{position:absolute;top:50%;height:8px;min-width:3px;transform:translateY(-50%);border-radius:4px;overflow:hidden}
+  .tl .bar .g{position:absolute;inset:0;background:rgba(15,17,17,.09)}
+  .tl .bar .f{position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--p,0));background:var(--squid)}
+  .tl .row[data-kind=model] .bar .f{background:var(--orange)}
+  .tl .row[data-flag=true] .bar .f{background:var(--esc)}
+  .tl .row[data-kind=verdict] .bar .f{background:var(--verdict)}
+  .tl .row[data-skip=true] .bar{height:9px;border:1.5px dashed var(--stubLine);background:transparent}
+  .tl .row[data-skip=true] .bar .g,.tl .row[data-skip=true] .bar .f{display:none}
+  .tl .res{display:flex;align-items:center;justify-content:flex-end;gap:6px;width:var(--meta);flex-shrink:0;min-width:0;padding-left:10px;opacity:0;transition:opacity .25s}
+  .tl .row[data-state=done] .res{opacity:1}
+  .tl .res svg{width:12px;height:12px;flex-shrink:0;color:var(--ok)}
+  .tl .row[data-flag=true] .res svg{color:var(--esc)} .tl .row[data-skip=true] .res svg{color:var(--mute)}
+  .tl .res .r{font-size:11.5px;font-weight:600;white-space:nowrap;flex-shrink:0}
+  .tl .row[data-flag=true] .res .r{color:var(--esc)} .tl .row[data-skip=true] .res .r{color:var(--mute);font-weight:400}
+  .tl .res .s{font-size:11px;color:var(--sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .tl .ph{pointer-events:none} .tl .ph>div{position:relative;width:100%;height:100%;transform:translateX(calc(var(--t,0) * 100%))}
+  .tl .ph i{position:absolute;top:0;bottom:0;width:1px;background:var(--orange)}
+  .tl .ph b{position:absolute;top:0;left:0;width:7px;height:7px;margin-left:-3px;background:var(--orange);transform:rotate(45deg)}
+  .tl .scrub{cursor:ew-resize;touch-action:none;user-select:none}
+  .tl[data-live=false] .scrub{cursor:default}
+  .tl .tr{display:flex;align-items:center;gap:12px;height:40px;padding:0 14px;border-top:1px solid var(--line2);background:#F7F8F8}
+  .tl .go{width:30px;height:30px;flex-shrink:0;border:0;border-radius:50%;background:var(--orange);color:var(--ink);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(15,17,17,.22);transition:transform .12s,box-shadow .12s}
+  .tl .go:hover{box-shadow:0 2px 5px rgba(15,17,17,.28)} .tl .go:active{transform:scale(.96)}
+  .tl .go:focus-visible{outline:2px solid var(--squid);outline-offset:2px}
+  .tl .go:disabled{opacity:.45;cursor:default;box-shadow:none}
+  .tl .go svg{width:12px;height:12px;fill:currentColor;stroke:none}
+  .tl .rail2{position:relative;flex-grow:1;height:28px;border-radius:4px;outline:none}
+  .tl .rail2:focus-visible{outline:2px solid var(--orange)}
+  .tl .rail2 .tk2{position:absolute;left:6px;right:6px;top:50%;height:4px;transform:translateY(-50%);border-radius:2px;background:rgba(15,17,17,.1);overflow:hidden}
+  .tl .rail2 .tk2 i{display:block;width:100%;height:100%;transform-origin:left;transform:scaleX(var(--t,0));background:var(--squid)}
+  .tl .rail2 .th{position:absolute;left:6px;right:6px;top:0;bottom:0;pointer-events:none}
+  .tl .rail2 .th>div{position:relative;height:100%;transform:translateX(calc(var(--t,0) * 100%))}
+  .tl .rail2 .th b{position:absolute;top:50%;left:0;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--squid);border:2px solid #fff;box-shadow:0 1px 2px rgba(15,17,17,.3)}
+  .tl .at{font-family:var(--mono);font-size:10.5px;color:var(--sec);white-space:nowrap;min-width:190px;text-align:right}
+  @media (prefers-reduced-motion:reduce){ .tl .row,.tl .res,.tl .nm,.tl .lab svg{transition:none} .tl[data-run=playing] .hd .dot{animation:none} }
   /* the stage panel */
   .stage{flex-grow:1;min-height:280px;margin:14px 24px;background:var(--panel);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;overflow:hidden}
   .stage .head{padding:11px 16px;display:flex;align-items:center;gap:11px;background:#F7F8F8;border-bottom:1px solid var(--line2)}
@@ -202,7 +247,7 @@
 <section class="stage" id="stage"></section>
 
 <footer>
-  <span>hover a stop to see what it does · click it to see why it decided that way</span>
+  <span>drag the timeline to replay the run · click a stop to see why it decided that way</span>
   <span class="r" id="foot">the first ticket after a quiet spell takes ~15 s while the system wakes up; the rest take a few seconds</span>
 </footer>
 
@@ -211,7 +256,7 @@
 // (a local file, a data: preview, localhost), talk to the deployed function
 // URL directly — it sends CORS headers for exactly this.
 const LIVE = "https://vxmsr2n6ufxzgasohsc6yasdqu0mvwzx.lambda-url.us-east-1.on.aws";
-const API = /^https?:$/.test(location.protocol) ? "" : LIVE;
+const API = /^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname) ? "" : LIVE;
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -259,33 +304,33 @@ const SC = "https://sellercentral.amazon.com/help/hub/reference/external/";
 const BSA = "https://m.media-amazon.com/images/G/01/rainier/help./1.1_BSA_PDF_English.pdf";
 const seedBase = { state: "done", seed: true, provenance: [], refused: false, unverified: [], urlsInvented: [], detail: "", precedent: null };
 const SEEDS = [
-  { id: "ac5d28b0", cat: "payments", verdict: "ESCALATE", codes: ["F2_payments", "F6_ungrounded"], topics: ["payment_hold"], steps: 5,
+  { id: "ac5d28b0", took: 2281, cat: "payments", verdict: "ESCALATE", codes: ["F2_payments", "F6_ungrounded"], topics: ["payment_hold"], steps: 5,
     text: "my payment is on hold and I don't know why", close: false,
     top: { title: "When will I be paid?", path: "I'm still not seeing my money. What should I do?", url: SC + "G14911?locale=en-US" },
     requery: { expanded: ["funds", "money", "withheld", "withholding"], better: true, close: false, top: { title: "Amazon Services Business Solutions Agreement", path: "General Terms › Service Fee Payments; Receipt of Sales Proceeds", url: BSA } },
     quotesOk: false, verified: [], unverified: ["To be eligible for fund disbursement, you must refrain from deceptive, fraudulent, or illegal activity and remain in compliance with our Program Policies."],
     draft: "Thank you for contacting Seller Support about your message: “my payment is on hold and I don't know why”.\n\nThe applicable policy states: \"To be eligible for fund disbursement, you must refrain from deceptive, fraudulent, or illegal activity and remain in compliance with our Program Policies.\"\n\nPlease review the policy in full at the link below, which covers the requirements for your account.\n\nSource: Amazon Services Business Solutions Agreement › General Terms" },
-  { id: "0c581be8", cat: "shipping", verdict: "AUTO_SEND", codes: [], topics: [], steps: 4,
+  { id: "0c581be8", took: 22295, cat: "shipping", verdict: "AUTO_SEND", codes: [], topics: [], steps: 4,
     text: "how do I change the handling time on my listings", close: true,
     top: { title: "Manage your delivery time", path: "Modify your delivery time", url: SC + "G202167920?locale=en-US" }, requery: null, quotesOk: true,
     verified: ["You can view or update your account level default handling time in the General Shipping Settings tab under the Shipping settings.", "If your account has Automated handling time enabled, it will automatically calculate and assign the recommended SKU-specific handling time to each product based on data from your historic performance."],
     draft: "You can update the handling time for your listings in several ways. As the policy states, \"You can view or update your account level default handling time in the General Shipping Settings tab under the Shipping settings.\" This allows you to set a baseline handling time for all your products.\n\nFor specific products where you expect longer handling times, you can adjust them individually using Seller Central’s Manage Inventory tool or in bulk via inventory file templates uploads. The passage also notes, \"If your account has Automated handling time enabled, it will automatically calculate and assign the recommended SKU-specific handling time to each product based on data from your historic performance.\"\n\nTo proceed, navigate to the appropriate section in Seller Central based on whether you need to update your default handling time or make product-specific changes.\n\nSource: Manage your delivery time › Modify your delivery time" },
-  { id: "716df49d", cat: "account", verdict: "ESCALATE", codes: ["F1_account_enforcement"], topics: ["account_deactivation"], steps: 4,
+  { id: "716df49d", took: 135, cat: "account", verdict: "ESCALATE", codes: ["F1_account_enforcement"], topics: ["account_deactivation"], steps: 4,
     text: "my parcel is running late and the buyer is angry, and now amazon says my account could be deactivated if it happens again", close: true,
     top: { title: "Selling account reviews for seller-fulfilled orders", path: "What happens during an account review?", url: SC + "G200320980?locale=en-US" }, requery: null, quotesOk: true,
     verified: ["We will continue to review your account over the next 30 days for evidence which supports delivery of recent seller-fulfilled orders."],
     draft: "Thank you for contacting Seller Support about your message: my parcel is running late and the buyer is angry, and now amazon says my account could be...\n\nThe applicable policy states: \"We will continue to review your account over the next 30 days for evidence which supports delivery of recent seller-fulfilled orders.\"\n\nPlease review the policy in full at the link below, which covers the requirements for your account.\n\nSource: Selling account reviews for seller-fulfilled orders › What happens during an account review?" },
-  { id: "a80d1a61", cat: "account", verdict: "ESCALATE", codes: ["F5_legal"], topics: ["ip_infringement"], steps: 4,
+  { id: "a80d1a61", took: 116, cat: "account", verdict: "ESCALATE", codes: ["F5_legal"], topics: ["ip_infringement"], steps: 4,
     text: "I received a trademark infringement complaint against one of my listings", close: true,
     top: { title: "Intellectual Property Policy", path: "Amazon’s IP enforcement", url: SC + "G201361070?locale=en-US" }, requery: null, quotesOk: true,
     verified: ["Responding to an IP infringement notice. If you receive a notice or warning for infringement and you believe the rights owner or Amazon made an error, you may appeal or dispute the claim."],
     draft: "Thank you for contacting Seller Support about your message: I received a trademark infringement complaint against one of my listings.\n\nThe applicable policy states: \"Responding to an IP infringement notice. If you receive a notice or warning for infringement and you believe the rights owner or Amazon made an error, you may appeal or dispute the claim.\"\n\nPlease review the policy in full at the link below, which covers the requirements for your account.\n\nSource: Intellectual Property Policy › Amazon’s IP enforcement" },
-  { id: "4b479819", cat: "listings", verdict: "ESCALATE", codes: ["F4_listing_suppression"], topics: ["listing_suppressed"], steps: 4,
+  { id: "4b479819", took: 115, cat: "listings", verdict: "ESCALATE", codes: ["F4_listing_suppression"], topics: ["listing_suppressed"], steps: 4,
     text: "my listing is suppressed and not showing up in search", close: true,
     top: { title: "Suppressed listings", path: "Suppressed images", url: SC + "G200898440?locale=en-US" }, requery: null, quotesOk: true,
     verified: ["These requirements also apply to listings with variations. For example, if a listing has different sizes, its parent SKU and child SKUs for each size must meet the requirements above."],
     draft: "Thank you for contacting Seller Support about your message: my listing is suppressed and not showing up in search.\n\nThe applicable policy states: \"These requirements also apply to listings with variations. For example, if a listing has different sizes, its parent SKU and child SKUs for each size must meet the requirements above.\"\n\nPlease review the policy in full at the link below, which covers the requirements for your account.\n\nSource: Suppressed listings › Suppressed images" },
-  { id: "8d21eaf5", cat: "payments", verdict: "ESCALATE", codes: ["F6_ungrounded"], topics: [], steps: 5,
+  { id: "8d21eaf5", took: 3502, cat: "payments", verdict: "ESCALATE", codes: ["F6_ungrounded"], topics: [], steps: 5,
     text: "My payments are not going through what to do?", close: false,
     top: { title: "When will I be paid?", path: "I'm still not seeing my money. What should I do?", url: SC + "G14911?locale=en-US" },
     requery: { expanded: [], better: false, close: false, top: null }, quotesOk: false,
@@ -296,7 +341,7 @@ const SEEDS = [
 // ---------------------------------------------------------------- state
 let tickets = [];          // newest first; the operator's own tickets, then the demo set
 let selectedId = null;
-let stage = LAST;
+let stage = -1;           // the stop the panel shows; the timeline's playhead sets it
 let runs = 0;
 let arriving = null;
 let animatedRun = -1;      // the trail only redraws itself when the open ticket changes
@@ -360,6 +405,8 @@ function normalize(r){
     detail: g.detail || "",
     precedent,
     steps: (r.steps || []).length,
+    // wall time of the run, once the API reports it; older deployments do not, and the header then says nothing
+    took: (r.started_ms && r.completed_ms) ? r.completed_ms - r.started_ms : 0,
   };
 }
 
@@ -413,43 +460,217 @@ function renderRail(){
   rail.querySelectorAll(".tk").forEach(b => b.addEventListener("click", () => select(b.dataset.id)));
 }
 
+// ---------------------------------------------------------------- the timeline
+// The run, replayed. One row per stop on an axis the operator can drag: bars
+// fill, each stop's decision appears in words once it is made, and the stage
+// panel below follows the playhead. Everything on screen is derived from one
+// playhead position, so the rows keep no state of their own.
+const ICON = {
+  inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  tag: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  again: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  pen: '<path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/>',
+  scale: '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+  skip: '<path d="M5 12h14"/>',
+  play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+  pause: '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+};
+const svg = n => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[n] + '</svg>';
+const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+const PACE = 560;   // replay milliseconds per slot — a whole run replays in about three seconds
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+// Lay the stops out on the axis. Each stop takes a slot in the order it ran;
+// the second search sits inside "find policy" as a retry, and a stop that did
+// not need to run is a hollow slot, so the operator still sees it was considered.
+function rowsOf(t){
+  const live = t.state === "done";
+  const rq = live ? t.requery : null;
+  const p = live ? t.precedent : null;
+  const escl = live && t.verdict === "ESCALATE";
+  const R = [];
+  let at = 0;
+  const add = (i, len, extra) => {
+    const r = Object.assign({ i, start: at, end: at + len, depth: 0, kind: "check", icon: "search", skip: false, flag: false, result: "", sub: "", attempt: 0 }, extra);
+    at = r.end; R.push(r); return r;
+  };
+  add(0, 0.35, { kind: "io", icon: "inbox", result: "received", sub: "the seller’s own words" });
+  add(1, 1, { kind: "model", icon: "tag", result: live ? "filed under " + t.cat : "" });
+  const find = add(2, rq ? 1.6 : 1.3, { icon: "search", flag: live && !t.close, result: live ? (t.close ? "close match" : "weak match") : "", sub: live && t.top ? t.top.title : "" });
+  const again = { i: 3, depth: 1, kind: "check", icon: "again", attempt: 2, start: rq ? find.start + 0.8 : find.end - 0.3, end: find.end, skip: !rq, flag: false, result: "", sub: "" };
+  if (live && !rq) again.result = "not needed";
+  else if (rq) {
+    again.result = rq.better ? (rq.close ? "a closer page came up" : "a better page, still not close") : "no better page came up";
+    again.flag = !rq.close;
+    again.sub = rq.better && rq.top ? rq.top.title : "";
+  }
+  R.push(again);
+  const past = { kind: "check", icon: "history" };
+  if (!live) {}
+  else if (!p || !p.checked) { past.skip = true; past.result = "not checked"; }
+  else if (!p.similar.length) past.result = "first time asked";
+  else if (p.conflict) { past.flag = true; past.result = "a different answer went out"; past.sub = ago(p.lastSent.when); }
+  else if (p.lastSent) { past.result = "same answer as last time"; past.sub = ago(p.lastSent.when); }
+  else past.result = "seen before, none sent";
+  add(4, 1, past);
+  const draft = { kind: "model", icon: "pen" };
+  if (!live) {}
+  else if (t.refused) { draft.flag = true; draft.result = "declined to draft"; }
+  else if (t.quotesOk) { draft.result = "every quote checks out"; draft.sub = t.verified.length === 1 ? "1 line quoted" : t.verified.length + " lines quoted"; }
+  else { draft.flag = true; draft.result = t.unverified.length ? "a quote does not check out" : t.urlsInvented.length ? "a link does not check out" : "nothing quoted from the policy"; }
+  add(5, 1, draft);
+  add(6, 0.8, { kind: "verdict", icon: "scale", flag: escl, result: live ? (escl ? "needs a person" : "cleared to send") : "", sub: escl ? t.codes.map(ruleTitle).join(", ").toLowerCase() : "" });
+  return { rows: R, total: at };
+}
+
+const TL = { root: null, rows: [], els: [], total: 1, t: 0, playing: false, raf: 0, last: 0, ticket: null, pinned: null, rail: null, at: null, go: null };
+
+function paint(){
+  const root = TL.root; if (!root) return;
+  const { rows, total, t, ticket } = TL;
+  const live = ticket.state === "done";
+  root.style.setProperty("--t", (t / total).toFixed(5));
+  let under = 0;
+  rows.forEach((r, k) => {
+    const el = TL.els[k], dur = r.end - r.start;
+    const p = dur > 0 ? clamp((t - r.start) / dur, 0, 1) : (t >= r.start ? 1 : 0);
+    el.style.setProperty("--p", p.toFixed(4));
+    // Strictly past its start: a stop clicked in the gutter parks the playhead on its
+    // end, which is the next stop's start, and that next stop has not begun yet.
+    const st = !live ? (k === 0 ? "done" : "queued") : t <= r.start ? "queued" : p < 1 ? "running" : "done";
+    if (el.dataset.state !== st) el.dataset.state = st;
+    if (t > r.start) under = k;
+  });
+  const k = TL.pinned ?? under;
+  rows.forEach((r, j) => { TL.els[j].dataset.sel = String(live && j === k); });
+  // The stage panel shows the stop under the playhead. While the live system is
+  // still working there is nothing decided yet, so it shows the first stop's wait.
+  const next = live ? rows[k].i : 1;
+  if (next !== stage) { stage = next; renderStage(); }
+  root.dataset.run = TL.playing ? "playing" : "idle";
+  if (TL.rail && !TL.playing) {
+    TL.rail.setAttribute("aria-valuenow", String(Math.round(t / total * 100)));
+    TL.rail.setAttribute("aria-valuetext", "stop " + (stage + 1) + " of " + STOPS.length + ", " + STOPS[stage][1].toLowerCase());
+  }
+  if (TL.at) TL.at.textContent = !live ? (ticket.state === "busy" ? "working…" : "no answer") :
+    (TL.playing ? "replaying" : t >= total ? "replay finished" : "paused") + " · stop " + (stage + 1) + " of " + STOPS.length;
+}
+
+function frame(now){
+  TL.raf = 0;
+  const dt = Math.min(now - (TL.last || now), 250);  // clamp the jump after a hidden tab or a stalled frame
+  TL.last = now;
+  TL.t += dt / PACE;
+  if (TL.t >= TL.total) { TL.t = TL.total; TL.playing = false; }
+  paint();
+  if (TL.playing) TL.raf = requestAnimationFrame(frame);
+  else playButton();
+}
+function play(from){
+  if (from != null) TL.t = from;
+  if (TL.t >= TL.total) TL.t = 0;
+  TL.pinned = null; TL.playing = true; TL.last = 0;
+  playButton(); paint();
+  if (!TL.raf) TL.raf = requestAnimationFrame(frame);
+}
+function halt(){
+  TL.playing = false;
+  if (TL.raf) cancelAnimationFrame(TL.raf);
+  TL.raf = 0;
+  playButton();
+}
+function seek(slots){ TL.t = clamp(slots, 0, TL.total); paint(); }
+function playButton(){
+  if (!TL.go) return;
+  TL.go.innerHTML = svg(TL.playing ? "pause" : "play");
+  TL.go.setAttribute("aria-label", TL.playing ? "Pause the replay" : "Replay the run");
+}
+function scrubFrom(x, el){
+  const inset = +(el.dataset.inset || 0);
+  const rect = el.getBoundingClientRect();
+  const w = rect.width - inset * 2;
+  if (w > 0) { TL.pinned = null; seek((x - rect.left - inset) / w * TL.total); }
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden) halt(); });
+
 function renderTrail(){
   const el = $("#trail");
   const t = tickets.find(x => x.id === selectedId);
-  if (!t) { el.innerHTML = '<div class="sum"><span class="text" style="color:var(--sec)">Nothing open yet.</span></div>'; return; }
-  // Draw the trail only when a different ticket is opened; picking a stop just moves the highlight.
-  const animate = runs !== animatedRun;
-  animatedRun = runs;
-  const ab = animate ? (runs % 2 ? "b" : "a") : "";
-  const shortOf = i => {
-    if (t.state === "busy") return i === 0 ? "received" : "working…";
-    if (t.state === "error") return i === 0 ? "received" : "—";
-    if (i === 0) return "received";
-    if (i === 1) return t.cat;
-    if (i === 2) return t.close ? "close match" : "weak match";
-    if (i === 3) return t.requery ? "ran" : "not needed";
-    if (i === 4) { const p = t.precedent; if (!p || !p.checked) return "not checked"; if (!p.similar.length) return "first time"; if (p.conflict) return "different answer"; return p.lastSent ? "same answer" : "seen before"; }
-    if (i === 5) return t.quotesOk ? "checks out" : "does not check out";
-    return t.verdict.toLowerCase();
-  };
+  halt();
+  if (!t) { el.innerHTML = '<div class="tl"><div class="hd"><span class="text" style="color:var(--sec)">Nothing open yet.</span></div></div>'; TL.root = null; stage = 0; renderStage(); return; }
+  const live = t.state === "done";
+  const { rows, total } = rowsOf(t);
+  const pct = v => (v / total * 100).toFixed(3) + "%";
   const verdict = t.state === "busy" ? "WORKING" : t.state === "error" ? "ERROR" : t.verdict;
+  const why = live ? (t.verdict === "ESCALATE" ? "needs a person — " + whyOf(t) : whyOf(t)) : whyOf(t);
+  const took = live && t.took ? (t.took < 1000 ? "decided in under a second" : "decided in " + (t.took < 10000 ? (t.took / 1000).toFixed(1) : Math.round(t.took / 1000)) + " s") : "";
+  const stopsOnAxis = rows.filter(r => !r.depth && r.i > 0);
   el.innerHTML =
-    '<div class="sum" style="--verdict:' + inkOf(t) + '"><span class="cat">' + esc(t.cat) + '</span><span class="text">“' + esc(t.text) + '”</span>' +
-      '<span class="why">' + esc(t.state === "done" ? (t.verdict === "ESCALATE" ? "needs a person — " + whyOf(t) : whyOf(t)) : whyOf(t)) + '</span>' +
-      '<span class="pill">' + esc(verdict) + '</span></div>' +
-    '<div class="track" style="--verdict:' + inkOf(t) + '"><div class="line ' + ab + '"></div><div class="stops">' +
-      STOPS.map((s, i) => {
-        const st = stateOf(t, i);
-        const cls = (st === "skip" || st === "wait") ? "pale" : st === "flag" ? "flag" : st === "stop" ? "end" : "";
-        return '<button type="button" class="stop ' + ab + ' ' + cls + (i === stage ? " sel" : "") + '" style="' + (animate ? "animation-delay:" + (i * 0.17).toFixed(2) + "s" : "") + '" data-i="' + i + '">' +
-          '<span class="tip">' + esc(s[2]) + '</span><span class="dot">' + s[0] + '</span><span class="name">' + s[1] + '</span><span class="short">' + esc(shortOf(i)) + '</span></button>';
-      }).join("") +
-    '</div></div>';
-  el.querySelectorAll(".stop").forEach(b => b.addEventListener("click", () => {
-    stage = +b.dataset.i;
-    el.querySelectorAll(".stop").forEach(x => x.classList.toggle("sel", x === b));
-    renderStage();
+    '<div class="tl" id="tl" style="--verdict:' + inkOf(t) + '" data-run="idle" data-live="' + live + '">' +
+      '<div class="hd"><i class="dot"></i><span class="cat">' + esc(t.cat) + '</span><span class="text">“' + esc(t.text) + '”</span><span class="why">' + esc(why) + '</span>' +
+        (took ? '<span class="took">' + took + '</span>' : "") + '<span class="pill">' + esc(verdict) + '</span></div>' +
+      '<div class="ruler"><span class="k k1">STOP</span><div class="box scrub" data-inset="0">' +
+        stopsOnAxis.map(r => '<span class="n" style="left:' + pct((r.start + r.end) / 2) + '">' + r.i + '</span>').join("") +
+      '</div><span class="k k2">WHAT IT DECIDED</span></div>' +
+      '<div class="rows">' +
+        '<div class="box grid" aria-hidden="true">' + stopsOnAxis.map(r => '<i style="left:' + pct(r.start) + '"></i>').join("") + '</div>' +
+        '<ol aria-label="The stops this ticket went through">' + rows.map((r, k) => {
+          const S = STOPS[r.i];
+          return '<li class="row" data-k="' + k + '" data-kind="' + r.kind + '" data-flag="' + r.flag + '" data-skip="' + r.skip + '" data-state="queued" style="--p:0">' +
+            (r.depth ? '<i class="guide"></i>' : "") +
+            '<button type="button" class="lab" data-k="' + k + '" style="padding-left:' + (r.depth * 12 + 4) + 'px" aria-label="' + esc(S[1] + ": " + S[2]) + '">' +
+              svg(r.icon) + '<span class="nm">' + S[1] + '</span>' + (r.attempt ? '<span class="x2">×' + r.attempt + '</span>' : "") + '<span class="tip">' + esc(S[2]) + '</span></button>' +
+            '<div class="trk"><div class="bar" style="left:' + pct(r.start) + ';width:' + pct(r.end - r.start) + '"><i class="g"></i><i class="f"></i></div></div>' +
+            '<div class="res">' + (r.result ? svg(r.skip ? "skip" : r.flag ? "alert" : "check") + '<span class="r">' + esc(r.result) + '</span>' + (r.sub ? '<span class="s">' + esc(r.sub) + '</span>' : "") : "") + '</div>' +
+          '</li>';
+        }).join("") + '</ol>' +
+        '<div class="box ph" aria-hidden="true"><div><i></i><b></b></div></div>' +
+        '<div class="box scrub" data-inset="0"></div>' +
+      '</div>' +
+      '<div class="tr"><button type="button" class="go" id="go"' + (live ? "" : " disabled") + '></button>' +
+        '<div class="rail2 scrub" id="rail2" role="slider" tabindex="0" aria-label="Replay position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-inset="6"><div class="tk2"><i></i></div><div class="th"><div><b></b></div></div></div>' +
+        '<span class="at" id="at"></span></div>' +
+    '</div>';
+
+  TL.root = $("#tl"); TL.rows = rows; TL.total = total; TL.ticket = t; TL.pinned = null;
+  TL.els = Array.from(el.querySelectorAll(".row"));
+  TL.rail = $("#rail2"); TL.at = $("#at"); TL.go = $("#go");
+  playButton();
+
+  el.querySelectorAll(".lab").forEach(b => b.addEventListener("click", () => {
+    if (!live) return;
+    const k = +b.dataset.k;
+    halt(); TL.pinned = k; seek(rows[k].end);
   }));
+  el.querySelectorAll(".scrub").forEach(s => {
+    s.addEventListener("pointerdown", e => { if (!live) return; halt(); s.setPointerCapture(e.pointerId); scrubFrom(e.clientX, s); });
+    s.addEventListener("pointermove", e => { if (s.hasPointerCapture(e.pointerId)) scrubFrom(e.clientX, s); });
+    s.addEventListener("pointerup", e => { if (s.hasPointerCapture(e.pointerId)) s.releasePointerCapture(e.pointerId); });
+  });
+  TL.go.addEventListener("click", () => { if (TL.playing) halt(); else play(); });
+  TL.rail.addEventListener("keydown", e => {
+    if (!live) return;
+    const step = total / 50;
+    const d = { ArrowRight: step, ArrowUp: step, ArrowLeft: -step, ArrowDown: -step, PageUp: step * 10, PageDown: -step * 10 }[e.key];
+    if (e.key === "Home") { halt(); TL.pinned = null; seek(0); }
+    else if (e.key === "End") { halt(); TL.pinned = null; seek(total); }
+    else if (d != null) { halt(); TL.pinned = null; seek(TL.t + d); }
+    else return;
+    e.preventDefault();
+  });
+
+  // A different ticket replays from the start. Under reduced motion, or when
+  // the same ticket is redrawn, the playhead lands where the operator can read
+  // the whole run at once.
+  stage = -1;
+  if (!live) { TL.t = rows[0].end; paint(); }
+  else if (runs !== animatedRun && !reduceMotion.matches) play(0);
+  else { TL.t = total; paint(); }
+  animatedRun = runs;
 }
 
 function renderStage(){
@@ -561,11 +782,11 @@ function renderStage(){
   el.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => select(b.dataset.go)));
 }
 
-function renderAll(){ renderRail(); renderTrail(); renderStage(); }
+function renderAll(){ renderRail(); renderTrail(); }
 
 function select(id){
   if (id === selectedId) return;
-  selectedId = id; stage = LAST; runs++; arriving = null;
+  selectedId = id; runs++; arriving = null;
   renderAll();
 }
 
@@ -574,7 +795,7 @@ async function send(text){
   const tmpId = "t" + Math.random().toString(16).slice(2, 8);
   const t = { id: tmpId, state: "busy", text, cat: "…", verdict: "", codes: [], topics: [], provenance: [], close: true, requery: null, quotesOk: true, draft: "", verified: [], unverified: [], urlsInvented: [], precedent: null };
   tickets.unshift(t);
-  selectedId = tmpId; stage = LAST; runs++; arriving = tmpId;
+  selectedId = tmpId; runs++; arriving = tmpId;
   renderAll();
   $("#send").disabled = true;
   try {

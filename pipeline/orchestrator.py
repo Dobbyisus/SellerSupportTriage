@@ -191,6 +191,9 @@ class Pipeline:
             "precedent": precedent_mod.public(prec),
             "decision": decision,
             "steps": steps,
+            # Wall time of the run, so the console can say how long the decision took.
+            "started_ms": meta["created_ms"],
+            "completed_ms": outcome["completed_ms"],
         }
 
 
