@@ -45,152 +45,136 @@
   .compose .chip{height:40px;padding:0 13px;border:1px solid var(--line);border-radius:20px;background:#F7F8F8;font-size:12px;white-space:nowrap}
   .compose .chip:hover{border-color:var(--sec)}
 
-  /* the rail */
-  .rail{height:342px;flex-shrink:0;position:relative;background:var(--page);border-bottom:1px solid var(--line);display:flex;flex-direction:column}
-  .rail .bar{position:absolute;top:38px;left:0;right:0;height:12px;background:linear-gradient(#FDFDFD,#CDD3D6 38%,#8D969C 58%,#B9C0C4 78%,#E9ECEE);box-shadow:0 2px 5px rgba(15,17,17,.2)}
-  .rail .label{padding:9px 24px 6px;display:flex;align-items:baseline;gap:10px;position:relative}
-  .rail .label span:nth-child(2){font-size:11.5px;color:var(--sec)}
-  .rail .label .count{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--sec)}
-  .rail .scroll{flex-grow:1;overflow-x:auto;overflow-y:hidden;padding:6px 24px 8px;position:relative}
-  .rail .row{display:inline-flex;align-items:flex-start;gap:18px;padding:10px 12px 0;min-width:100%}
-  .rail .empty{align-self:center;margin:60px auto 0;font-size:13px;color:var(--sec);text-align:center;width:100%}
-  .scroll::-webkit-scrollbar{height:8px;width:8px}
-  .scroll::-webkit-scrollbar-thumb{background:#C5CACC;border-radius:4px}
-  .scroll::-webkit-scrollbar-track{background:transparent}
+  /* the board — four columns an agent works a ticket through; the system's verdict stays on the card */
+  .board{flex-shrink:0;padding:10px 24px 14px;background:var(--page);border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .board .label{display:flex;align-items:baseline;gap:10px}
+  .board .label span:nth-child(2){font-size:11.5px;color:var(--sec)}
+  .board .label .count{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--sec)}
+  .cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .col{height:372px;display:flex;flex-direction:column;border-radius:8px;background:#DFE3E4;border:1px solid var(--line);transition:background .15s,border-color .15s}
+  .col.over{background:#D2D9DB;border-color:var(--sec)}
+  .col .ch{display:flex;align-items:center;gap:8px;padding:10px 12px 6px;flex-shrink:0}
+  .col .ch i{width:8px;height:8px;border-radius:50%;background:var(--dotc)}
+  .col .ch b{font-size:12.5px;letter-spacing:.02em}
+  .col .ch .n{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--sec);border:1px solid #C5CACC;border-radius:10px;padding:1px 7px;background:#fff}
+  .col .list{flex-grow:1;min-height:0;overflow-y:auto;padding:0 10px 4px;display:flex;flex-direction:column;gap:8px}
+  .col .list::-webkit-scrollbar{width:6px} .col .list::-webkit-scrollbar-thumb{background:#B9C0C4;border-radius:3px}
+  .col .drop{margin:6px 10px 10px;padding:9px;border:1.5px dashed #B9C0C4;border-radius:6px;text-align:center;font-size:11px;color:var(--mute);flex-shrink:0;transition:border-color .15s,color .15s}
+  .col.over .drop{border-color:var(--squid);color:var(--squid)}
+  .col .none{padding:14px 6px;text-align:center;font-size:11.5px;color:var(--mute)}
 
-  .hang{width:176px;flex-shrink:0;display:flex;flex-direction:column;align-items:center}
-  .hang .strap{width:12px;height:22px;background:linear-gradient(90deg,#5B6369,#939BA1 50%,#5B6369);border-radius:0 0 2px 2px}
-  .hang .clip{width:20px;height:13px;margin-top:-3px;border-radius:6px;background:linear-gradient(#B7BEC3,#6B7378);box-shadow:0 1px 2px rgba(15,17,17,.35)}
-
-  .tk{width:176px;height:246px;margin-top:-4px;padding:0;text-align:left;position:relative;overflow:hidden;background:var(--paper);border:1.5px solid var(--paperLine);border-radius:9px;display:flex;flex-direction:row;box-shadow:0 2px 6px rgba(15,17,17,.12);transition:box-shadow .14s ease,transform .14s ease}
-  .tk:hover{box-shadow:0 8px 18px rgba(15,17,17,.22)}
-  .tk.on{border-color:var(--squid);transform:translateY(-4px);box-shadow:0 10px 22px rgba(15,17,17,.24)}
-  .tk .stub{width:27px;flex-shrink:0;border-right:1.5px dashed var(--stubLine);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:14px 0 12px}
-  .tk .stub span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap}
-  .tk .stub .no{font-family:var(--mono);font-size:7.5px;letter-spacing:.14em;color:#6E6558}
-  .tk .stub .admit{font-size:9px;font-weight:800;letter-spacing:.16em;color:var(--squid)}
-  .tk .notch{position:absolute;left:20px;width:14px;height:14px;border-radius:50%;background:var(--page);border:1px solid var(--paperLine)}
-  .tk .notch.t{top:-7px} .tk .notch.b{bottom:-7px}
-  .tk .main{flex-grow:1;min-width:0;padding:10px 9px 9px 10px;display:flex;flex-direction:column}
-  .tk .kicker{font-family:var(--mono);font-size:7.5px;letter-spacing:.14em;color:#8A8071}
-  .tk .cat{margin-top:3px;font-size:18px;font-weight:800;line-height:1;letter-spacing:-.01em;text-transform:uppercase;color:var(--squid)}
-  .tk .with{margin-top:4px;font-size:9.5px;color:var(--sec)}
-  .tk .photo{flex-grow:1;min-height:0;margin-top:6px;padding:7px 8px;border-radius:4px;background:var(--paperTint);display:flex;flex-direction:column}
-  .tk .msg{font-size:11px;font-weight:600;line-height:1.32;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-  .tk .dots{display:flex;align-items:center;gap:5px;margin-top:auto;padding-top:6px}
-  .tk .dots i{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--squid);background:var(--squid)}
-  .tk .dots i.pale{border-color:#C7C3B6;background:var(--paper)}
-  .tk .dots i.flag{border-color:var(--verdict);background:var(--paper)}
-  .tk .dots i.end{border-color:var(--verdict);background:var(--verdict)}
-  .tk .foot{margin-top:8px;padding-top:7px;border-top:1px solid var(--paperLine);display:flex;align-items:center;justify-content:space-between;gap:6px}
-  .tk .why{font-size:9px;line-height:1.2;color:var(--sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tk{position:relative;display:flex;width:100%;flex-shrink:0;padding:0;text-align:left;font:inherit;color:var(--ink);background:var(--paper);border:1.5px solid var(--paperLine);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(15,17,17,.1);cursor:grab;touch-action:none;transition:box-shadow .15s,border-color .15s,opacity .15s}
+  .tk:hover{box-shadow:0 4px 10px rgba(15,17,17,.18)}
+  .tk:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+  .tk.on{border-color:var(--squid);box-shadow:0 6px 16px rgba(15,17,17,.22)}
+  .tk .stub{width:22px;flex-shrink:0;border-right:1.5px dashed var(--stubLine);display:flex;align-items:center;justify-content:center}
+  .tk .stub span{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--mono);font-size:7.5px;letter-spacing:.14em;color:#6E6558;white-space:nowrap}
+  .tk .main{flex-grow:1;min-width:0;padding:8px 9px 8px 10px;display:flex;flex-direction:column;gap:3px}
+  .tk .top{display:flex;align-items:baseline;gap:8px}
+  .tk .cat{font-size:14px;font-weight:800;letter-spacing:-.01em;text-transform:uppercase;color:var(--squid)}
+  .tk .kicker{margin-left:auto;font-family:var(--mono);font-size:7.5px;letter-spacing:.14em;color:#8A8071;white-space:nowrap}
+  .tk .msg{font-size:11.5px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .tk .foot{margin-top:3px;padding-top:6px;border-top:1px solid var(--paperLine);display:flex;align-items:center;gap:6px}
+  .tk .why{flex-grow:1;font-size:9.5px;color:var(--sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tk .pill{flex-shrink:0;font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.06em;color:#fff;background:var(--verdict);border-radius:3px;padding:3px 6px}
   .tk.busy .pill{animation:pulse 1.1s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
-  @keyframes slide-in{from{transform:translateX(-190px) translateY(-4px) rotate(-5deg);opacity:0}60%{transform:translateX(8px) translateY(-4px) rotate(1deg);opacity:1}to{transform:translateY(-4px);opacity:1}}
-  .tk.arriving{animation:slide-in .5s cubic-bezier(.22,.9,.3,1)}
+  @keyframes drop-in{from{transform:translateY(-14px);opacity:0}to{transform:none;opacity:1}}
+  .tk.arriving{animation:drop-in .45s cubic-bezier(.22,.9,.3,1)}
+  /* dragging: the card itself hides and leaves a slot; a lifted copy follows the pointer and settles into the slot on release */
+  .tk-ghost{position:fixed;left:0;top:0;z-index:50;margin:0;pointer-events:none;box-shadow:0 14px 30px rgba(15,17,17,.32);border-color:var(--squid);cursor:grabbing;transition:none;will-change:transform}
+  .tk-ghost.settle{transition:transform .2s cubic-bezier(.2,.8,.3,1),box-shadow .2s;box-shadow:0 1px 3px rgba(15,17,17,.1)}
+  .slot{flex-shrink:0;border:1.5px dashed var(--squid);border-radius:8px;background:rgba(35,47,62,.07);box-sizing:border-box}
+  body.dragging,body.dragging *{cursor:grabbing!important;user-select:none}
 
-  /* the timeline — the run replayed, one row per stop, on an axis the operator can drag */
-  .trail{flex-shrink:0;padding:14px 24px 0;background:var(--page)}
-  .tl{--gutter:172px;--meta:264px;--pad:12px;--row:24px;--t:0;position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
-  .tl .hd{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 14px;border-bottom:1px solid var(--line2)}
-  .tl .hd .dot{width:7px;height:7px;border-radius:50%;background:var(--mute);flex-shrink:0;transition:background .3s}
-  .tl[data-run=playing] .hd .dot{background:var(--orange);animation:pulse 1.1s ease-in-out infinite}
-  .tl .hd .cat{font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:var(--sec);border:1px solid var(--line);border-radius:3px;padding:2px 7px;flex-shrink:0}
-  .tl .hd .text{flex-grow:1;min-width:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .tl .hd .why{font-size:12px;color:var(--sec);white-space:nowrap}
-  .tl .hd .took{font-family:var(--mono);font-size:10.5px;color:var(--mute);white-space:nowrap}
-  .tl .hd .pill{font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:.03em;color:#fff;border-radius:4px;padding:5px 10px;background:var(--verdict);flex-shrink:0}
-  .tl .box{position:absolute;top:0;bottom:0;left:calc(var(--gutter) + var(--pad));right:calc(var(--meta) + var(--pad))}
-  .tl .ruler{position:relative;display:flex;align-items:center;height:22px;padding:0 var(--pad);border-bottom:1px solid var(--line2)}
-  .tl .ruler .k1{width:var(--gutter);flex-shrink:0;padding-left:4px}
-  .tl .ruler .k2{width:var(--meta);flex-shrink:0;margin-left:auto;text-align:right}
-  .tl .ruler .n{position:absolute;top:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:10px;color:var(--sec)}
-  .tl .rows{position:relative;padding:4px 0}
-  .tl .rows ol{list-style:none;margin:0;padding:0;position:relative}
-  .tl .grid{pointer-events:none} .tl .grid i{position:absolute;top:0;bottom:0;width:1px;background:var(--line2)}
-  .tl .row{position:relative;display:flex;align-items:center;height:var(--row);padding:0 var(--pad);transition:background .15s}
-  .tl .row[data-sel=true]{background:#F3F5F5}
-  .tl .row[data-state=running]{background:#FFF4DF}
-  .tl .row .guide{position:absolute;top:0;bottom:0;left:calc(var(--pad) + 11px);width:1px;background:var(--line)}
-  .tl .lab{position:relative;display:flex;align-items:center;gap:6px;width:var(--gutter);height:100%;flex-shrink:0;padding:0 8px 0 4px;border:0;border-radius:4px;background:transparent;text-align:left;color:var(--ink)}
-  .tl .lab:hover{background:#E9ECEC}
-  .tl .lab:focus-visible{outline:2px solid var(--orange);outline-offset:-2px}
-  .tl .lab svg{width:13px;height:13px;flex-shrink:0;color:var(--sec);transition:color .2s}
-  .tl .row[data-state=queued] .lab svg{color:var(--mute)}
-  .tl .row[data-kind=model]:not([data-state=queued]) .lab svg{color:#E47911}
-  .tl .nm{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .2s}
-  .tl .row[data-state=queued] .nm{color:var(--mute)}
-  .tl .row[data-sel=true] .nm{color:var(--ink);font-weight:700}
-  .tl .x2{flex-shrink:0;font-family:var(--mono);font-size:9px;line-height:14px;padding:0 4px;border:1px solid var(--line);border-radius:3px;color:var(--sec)}
-  .tl .tip{position:absolute;bottom:100%;left:0;z-index:3;margin-bottom:4px;width:250px;padding:6px 9px;border-radius:5px;background:var(--squid);color:#fff;font-family:var(--sans);font-size:11px;letter-spacing:0;line-height:1.35;pointer-events:none;opacity:0;transition:opacity .12s}
-  .tl .lab:hover .tip,.tl .lab:focus-visible .tip{opacity:1}
-  .tl .trk{position:relative;flex-grow:1;height:100%}
-  .tl .bar{position:absolute;top:50%;height:8px;min-width:3px;transform:translateY(-50%);border-radius:4px;overflow:hidden}
-  .tl .bar .g{position:absolute;inset:0;background:rgba(15,17,17,.09)}
-  .tl .bar .f{position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--p,0));background:var(--squid)}
-  .tl .row[data-kind=model] .bar .f{background:var(--orange)}
-  .tl .row[data-flag=true] .bar .f{background:var(--esc)}
-  .tl .row[data-kind=verdict] .bar .f{background:var(--verdict)}
-  .tl .row[data-skip=true] .bar{height:9px;border:1.5px dashed var(--stubLine);background:transparent}
-  .tl .row[data-skip=true] .bar .g,.tl .row[data-skip=true] .bar .f{display:none}
-  .tl .res{display:flex;align-items:center;justify-content:flex-end;gap:6px;width:var(--meta);flex-shrink:0;min-width:0;padding-left:10px;opacity:0;transition:opacity .25s}
-  .tl .row[data-state=done] .res{opacity:1}
-  .tl .res svg{width:12px;height:12px;flex-shrink:0;color:var(--ok)}
-  .tl .row[data-flag=true] .res svg{color:var(--esc)} .tl .row[data-skip=true] .res svg{color:var(--mute)}
-  .tl .res .r{font-size:11.5px;font-weight:600;white-space:nowrap;flex-shrink:0}
-  .tl .row[data-flag=true] .res .r{color:var(--esc)} .tl .row[data-skip=true] .res .r{color:var(--mute);font-weight:400}
-  .tl .res .s{font-size:11px;color:var(--sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-  .tl .ph{pointer-events:none} .tl .ph>div{position:relative;width:100%;height:100%;transform:translateX(calc(var(--t,0) * 100%))}
-  .tl .ph i{position:absolute;top:0;bottom:0;width:1px;background:var(--orange)}
-  .tl .ph b{position:absolute;top:0;left:0;width:7px;height:7px;margin-left:-3px;background:var(--orange);transform:rotate(45deg)}
-  .tl .scrub{cursor:ew-resize;touch-action:none;user-select:none}
-  .tl[data-live=false] .scrub{cursor:default}
-  .tl .tr{display:flex;align-items:center;gap:12px;height:40px;padding:0 14px;border-top:1px solid var(--line2);background:#F7F8F8}
-  .tl .go{width:30px;height:30px;flex-shrink:0;border:0;border-radius:50%;background:var(--orange);color:var(--ink);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(15,17,17,.22);transition:transform .12s,box-shadow .12s}
-  .tl .go:hover{box-shadow:0 2px 5px rgba(15,17,17,.28)} .tl .go:active{transform:scale(.96)}
-  .tl .go:focus-visible{outline:2px solid var(--squid);outline-offset:2px}
-  .tl .go:disabled{opacity:.45;cursor:default;box-shadow:none}
-  .tl .go svg{width:12px;height:12px;fill:currentColor;stroke:none}
-  .tl .rail2{position:relative;flex-grow:1;height:28px;border-radius:4px;outline:none}
-  .tl .rail2:focus-visible{outline:2px solid var(--orange)}
-  .tl .rail2 .tk2{position:absolute;left:6px;right:6px;top:50%;height:4px;transform:translateY(-50%);border-radius:2px;background:rgba(15,17,17,.1);overflow:hidden}
-  .tl .rail2 .tk2 i{display:block;width:100%;height:100%;transform-origin:left;transform:scaleX(var(--t,0));background:var(--squid)}
-  .tl .rail2 .th{position:absolute;left:6px;right:6px;top:0;bottom:0;pointer-events:none}
-  .tl .rail2 .th>div{position:relative;height:100%;transform:translateX(calc(var(--t,0) * 100%))}
-  .tl .rail2 .th b{position:absolute;top:50%;left:0;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--squid);border:2px solid #fff;box-shadow:0 1px 2px rgba(15,17,17,.3)}
-  .tl .at{font-family:var(--mono);font-size:10.5px;color:var(--sec);white-space:nowrap;min-width:190px;text-align:right}
-  @media (prefers-reduced-motion:reduce){ .tl .row,.tl .res,.tl .nm,.tl .lab svg{transition:none} .tl[data-run=playing] .hd .dot{animation:none} }
-  /* the stage panel */
-  .stage{flex-grow:1;min-height:280px;margin:14px 24px;background:var(--panel);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;overflow:hidden}
-  .stage .head{padding:11px 16px;display:flex;align-items:center;gap:11px;background:#F7F8F8;border-bottom:1px solid var(--line2)}
+  /* the ledger — the run, line by line, beside the stop the operator is reading */
+  .trail{flex-grow:1;min-height:0;padding:14px 24px;background:var(--page);display:flex;flex-direction:column}
+  .lg{flex-grow:1;min-height:0;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .lg .hd{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 16px;border-bottom:1px solid var(--line2);flex-shrink:0}
+  .lg .hd .dot{width:7px;height:7px;border-radius:50%;background:var(--mute);flex-shrink:0;transition:background .3s}
+  .lg[data-run=playing] .hd .dot{background:var(--orange);animation:pulse 1.1s ease-in-out infinite}
+  .lg .hd .cat{font-family:var(--mono);font-size:10px;letter-spacing:.09em;color:var(--sec);border:1px solid var(--line);border-radius:3px;padding:2px 7px;flex-shrink:0}
+  .lg .hd .text{flex-grow:1;min-width:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lg .hd .why{font-size:12px;color:var(--sec);white-space:nowrap}
+  .lg .hd .took{font-family:var(--mono);font-size:10.5px;color:var(--mute);white-space:nowrap}
+  .lg .hd .pill{font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:.03em;color:#fff;border-radius:4px;padding:5px 10px;background:var(--verdict);flex-shrink:0}
+  .lg .body{flex-grow:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .lg .runs{position:relative;padding:10px 0 8px;border-right:1px solid var(--line2);display:flex;flex-direction:column;overflow:hidden}
+  .lg .runs .guide{position:absolute;left:39px;top:26px;bottom:26px;width:2px;background:repeating-linear-gradient(#A79F8C 0 5px,transparent 5px 11px)}
+  .lg .row{position:relative;display:flex;align-items:center;gap:14px;height:42px;width:100%;padding:0 20px 0 22px;border:0;background:transparent;font:inherit;color:var(--ink);text-align:left;cursor:pointer;transition:background .2s}
+  .lg .row:hover{background:#F3F5F5}
+  .lg .row:focus-visible{outline:2px solid var(--orange);outline-offset:-2px}
+  .lg .row[data-depth="1"]{padding-left:48px}
+  .lg .row[data-sel=true]{background:#F3F5F5}
+  .lg .row[data-state=running]{background:#FFF4DF}
+  .lg .row[data-tone=end][data-state=done]{background:var(--verdictBg)}
+  .lg .node{width:34px;height:34px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:600;box-sizing:border-box;border:2px solid var(--squid);background:var(--squid);color:#fff;position:relative;z-index:1;transition:background .2s,border-color .2s,color .2s,box-shadow .2s}
+  .lg .row[data-depth="1"] .node{width:22px;height:22px;font-size:10px}
+  .lg .row[data-tone=model] .node{background:var(--orange);border-color:var(--orange);color:var(--ink)}
+  .lg .row[data-tone=flag] .node{background:#fff;border-color:var(--esc);color:var(--esc)}
+  .lg .row[data-tone=skip] .node{background:var(--page);border-style:dashed;border-color:var(--mute);color:var(--mute)}
+  .lg .row[data-tone=end] .node{background:var(--verdict);border-color:var(--verdict);color:#fff}
+  .lg .row[data-state=queued] .node{background:var(--page);border-style:dashed;border-color:#C5CACC;color:var(--mute)}
+  .lg .row[data-state=running] .node{box-shadow:0 0 0 4px #FFE2B0}
+  .lg .txt{flex-grow:1;min-width:0}
+  .lg .nm{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--sec);display:flex;align-items:center;gap:6px;transition:color .2s}
+  .lg .row[data-tone=skip] .nm,.lg .row[data-state=queued] .nm{color:var(--mute)}
+  .lg .row[data-sel=true] .nm{color:var(--ink);font-weight:700}
+  .lg .x2{font-size:9px;line-height:14px;padding:0 4px;border:1px solid var(--line);border-radius:3px;color:var(--sec)}
+  .lg .s{font-size:13px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .25s}
+  .lg .row[data-tone=skip] .s{color:var(--mute)} .lg .row[data-depth="1"] .s{font-size:12.5px;color:var(--sec)}
+  .lg .w{font-size:11.5px;font-weight:600;white-space:nowrap;color:var(--ok);transition:opacity .25s}
+  .lg .row[data-tone=flag] .w{color:var(--esc)} .lg .row[data-tone=skip] .w{color:var(--mute);font-weight:400} .lg .row[data-tone=end] .w{color:var(--verdict)}
+  .lg .row[data-state=queued] .s,.lg .row[data-state=queued] .w,.lg .row[data-state=running] .s,.lg .row[data-state=running] .w{opacity:0}
+  .lg .pane{display:flex;flex-direction:column;min-height:0;background:#F7F8F8}
+  .lg .tr{display:flex;align-items:center;gap:12px;height:44px;padding:0 16px;border-top:1px solid var(--line2);flex-shrink:0}
+  .lg .go{width:30px;height:30px;flex-shrink:0;border:0;border-radius:50%;background:var(--orange);color:var(--ink);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(15,17,17,.22);transition:transform .12s,box-shadow .12s}
+  .lg .go:hover{box-shadow:0 2px 5px rgba(15,17,17,.28)} .lg .go:active{transform:scale(.96)}
+  .lg .go:focus-visible{outline:2px solid var(--squid);outline-offset:2px}
+  .lg .go:disabled{opacity:.45;cursor:default;box-shadow:none}
+  .lg .go svg{width:12px;height:12px;fill:currentColor;stroke:none}
+  .lg .rail2{position:relative;flex-grow:1;height:28px;border-radius:4px;outline:none;cursor:ew-resize;touch-action:none;user-select:none}
+  .lg .rail2:focus-visible{outline:2px solid var(--orange)}
+  .lg .rail2 .tk2{position:absolute;left:6px;right:6px;top:50%;height:4px;transform:translateY(-50%);border-radius:2px;background:rgba(15,17,17,.1);overflow:hidden}
+  .lg .rail2 .tk2 i{display:block;width:100%;height:100%;transform-origin:left;transform:scaleX(var(--t,0));background:var(--squid)}
+  .lg .rail2 .th{position:absolute;left:6px;right:6px;top:0;bottom:0;pointer-events:none}
+  .lg .rail2 .th>div{position:relative;height:100%;transform:translateX(calc(var(--t,0) * 100%))}
+  .lg .rail2 .th b{position:absolute;top:50%;left:0;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--squid);border:2px solid #fff;box-shadow:0 1px 2px rgba(15,17,17,.3)}
+  .lg .at{font-family:var(--mono);font-size:10.5px;color:var(--sec);white-space:nowrap;text-align:right}
+  .lg[data-live=false] .rail2{cursor:default}
+  @media (prefers-reduced-motion:reduce){ .lg .row,.lg .s,.lg .w,.lg .node,.tk,.tk-ghost{transition:none} .lg[data-run=playing] .hd .dot{animation:none} .tk.arriving{animation:none} }
+
+  /* the stage panel — the right half of the ledger: one stop at a time */
+  .stage{flex-grow:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  .stage .head{padding:11px 16px;display:flex;align-items:center;gap:11px;background:#F7F8F8;border-bottom:1px solid var(--line2);flex-shrink:0}
   .stage .head .n{font-family:var(--mono);font-size:11px;color:var(--sec)}
   .stage .head .name{font-size:13.5px;font-weight:700;letter-spacing:.02em}
-  .stage .head .sub{font-size:12px;color:var(--sec)}
-  .stage .head .badge{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.06em;border-radius:3px;padding:3px 8px;border:1px solid var(--line);color:var(--sec);background:#fff}
+  .stage .head .sub{font-size:12px;color:var(--sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .stage .head .badge{margin-left:auto;flex-shrink:0;font-family:var(--mono);font-size:10px;letter-spacing:.06em;border-radius:3px;padding:3px 8px;border:1px solid var(--line);color:var(--sec);background:#fff}
   .stage .head .badge.good{color:#fff;background:var(--ok);border-color:var(--ok)}
   .stage .head .badge.bad{color:#fff;background:var(--esc);border-color:var(--esc)}
   .stage .head .badge.ink{color:#fff;background:var(--squid);border-color:var(--squid)}
-  .stage .body{flex-grow:1;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;gap:18px;align-items:flex-start}
-  .stage .left{flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:13px}
+  .stage .body{flex-grow:1;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:13px}
+  .stage .body::-webkit-scrollbar{width:6px} .stage .body::-webkit-scrollbar-thumb{background:#C5CACC;border-radius:3px}
+  .stage .left{display:flex;flex-direction:column;gap:13px}
   .stage .lead{margin:0;font-size:14px;line-height:1.5}
   .stage .paper{padding:13px 15px;border:1px solid #E3DFD3;background:#FFFDF7}
   .stage .paper p{margin:0;font-size:12.5px;line-height:1.6;white-space:pre-line}
   .stage .chips{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-  .stage .chip{font-size:12px;font-weight:600;border-radius:4px;padding:4px 9px;border:1px solid var(--line);background:#F7F8F8;color:var(--ink)}
+  .stage .chip{font-size:12px;font-weight:600;border-radius:4px;padding:4px 9px;border:1px solid var(--line);background:#fff;color:var(--ink)}
   .stage .chip.esc{color:var(--esc);background:var(--escBg);border-color:var(--escLine)}
-  .stage .pass{padding:11px 13px;border:1px solid var(--line2);border-radius:6px;background:#F7F8F8;display:flex;flex-direction:column;gap:5px}
+  .stage .pass{padding:11px 13px;border:1px solid var(--line2);border-radius:6px;background:#fff;display:flex;flex-direction:column;gap:5px}
   .stage .pass .t{font-size:14px;font-weight:700} .stage .pass .p{font-size:12px;color:var(--sec)} .stage .pass a{font-size:12px}
   .stage .quotes{display:flex;flex-direction:column;gap:7px}
   .stage .q{display:flex;gap:9px;padding:9px 11px;border-radius:6px;border:1px solid var(--okLine);background:var(--okBg)}
   .stage .q.bad{border-color:var(--escLine);background:var(--escBg)}
   .stage .q .m{flex-shrink:0;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ok)} .stage .q.bad .m{color:var(--esc)}
   .stage .q .x{flex-grow:1;font-size:12px;line-height:1.45} .stage .q .v{flex-shrink:0;font-size:11.5px;color:var(--ok)} .stage .q.bad .v{color:var(--esc)}
-  .stage .q.past{cursor:pointer;border-color:var(--line);background:#F7F8F8} .stage .q.past:hover{border-color:var(--sec)} .stage .q.past .m{color:var(--sec)} .stage .q.past .v{color:var(--sec)}
+  .stage .q.past{cursor:pointer;border-color:var(--line);background:#fff} .stage .q.past:hover{border-color:var(--sec)} .stage .q.past .m{color:var(--sec)} .stage .q.past .v{color:var(--sec)}
   .stage .q.past.sent{border-color:var(--okLine);background:var(--okBg)} .stage .q.past.sent .m,.stage .q.past.sent .v{color:var(--ok)}
   .stage .q.past.same .x{font-weight:600}
   .stage .cards{display:flex;flex-direction:column;gap:11px}
-  .card{border:1px solid var(--escLine);border-radius:7px;overflow:hidden}
+  .card{border:1px solid var(--escLine);border-radius:7px;overflow:hidden;background:#fff}
   .card.ok{border-color:var(--okLine)}
   .card .ch{padding:9px 13px;display:flex;align-items:center;gap:10px;background:var(--escBg);border-bottom:1px solid var(--escLine)}
   .card.ok .ch{background:var(--okBg);border-color:var(--okLine)}
@@ -199,7 +183,7 @@
   .card .ch .b{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--sec);border:1px solid var(--line);border-radius:3px;padding:3px 6px;background:#fff}
   .card .cb{padding:11px 13px;display:flex;flex-direction:column;gap:7px}
   .card .cb p{margin:0;font-size:12.5px;line-height:1.5} .card .cb p.g{font-size:11.5px;color:var(--sec)} .card .cb a{font-size:11.5px}
-  .stage .aside{width:292px;flex-shrink:0;padding:12px 14px;border:1px dashed #C7C3B6;border-radius:7px;background:#FBF7EC;display:flex;flex-direction:column;gap:7px}
+  .stage .aside{padding:12px 14px;border:1px dashed #C7C3B6;border-radius:7px;background:#FBF7EC;display:flex;flex-direction:column;gap:7px}
   .stage .aside p{margin:0;font-size:12px;line-height:1.5}
 
   footer{height:30px;flex-shrink:0;padding:0 24px;display:flex;align-items:center;gap:12px;background:var(--panel);border-top:1px solid var(--line);font-family:var(--mono);font-size:10.5px;color:var(--sec)}
@@ -233,21 +217,19 @@
   </div>
 </section>
 
-<section class="rail">
-  <div class="bar"></div>
+<section class="board">
   <div class="label">
-    <span class="k">THE RAIL</span>
-    <span>newest on the left · click a ticket to see why it was decided</span>
+    <span class="k">THE BOARD</span>
+    <span>drag a ticket to the column it belongs in · click one to see why it was decided</span>
     <span class="count" id="count"></span>
   </div>
-  <div class="scroll"><div class="row" id="rail"></div></div>
+  <div class="cols" id="cols"></div>
 </section>
 
 <section class="trail" id="trail"></section>
-<section class="stage" id="stage"></section>
 
 <footer>
-  <span>drag the timeline to replay the run · click a stop to see why it decided that way</span>
+  <span>drag a ticket between columns as you work it (shift + ← → on the keyboard) · click a stop to see why it decided that way</span>
   <span class="r" id="foot">the first ticket after a quiet spell takes ~15 s while the system wakes up; the rest take a few seconds</span>
 </footer>
 
@@ -344,7 +326,7 @@ let selectedId = null;
 let stage = -1;           // the stop the panel shows; the timeline's playhead sets it
 let runs = 0;
 let arriving = null;
-let animatedRun = -1;      // the trail only redraws itself when the open ticket changes
+const replayed = new Set(); // tickets that have had their first-open replay; after that only Play replays
 
 let saved = [];
 try { saved = JSON.parse(localStorage.getItem("triage.rail") || "[]"); } catch (e) { saved = []; }
@@ -411,71 +393,201 @@ function normalize(r){
 }
 
 // ---------------------------------------------------------------- render
-function stateOf(t, i){
-  if (t.state === "busy") return i === 0 ? "done" : "wait";
-  if (t.state === "error") return i === 0 ? "done" : "wait";
-  if (i === 2 && !t.close) return "flag";
-  if (i === 3) return t.requery ? "done" : "skip";
-  if (i === 4) { const p = t.precedent; if (!p || !p.checked) return "skip"; return p.conflict ? "flag" : (p.similar.length ? "done" : "skip"); }
-  if (i === 5 && !t.quotesOk) return "flag";
-  if (i === 6) return t.verdict === "ESCALATE" ? "stop" : "done";
-  return "done";
-}
 const inkOf = t => t.verdict === "ESCALATE" ? "var(--esc)" : (t.state === "done" ? "var(--ok)" : "var(--squid)");
+const tintOf = t => t.verdict === "ESCALATE" ? "var(--escBg)" : "var(--okBg)";
 function whyOf(t){
   if (t.state === "busy") return "working…";
   if (t.state === "error") return t.error || "the live system did not answer";
   return t.verdict === "ESCALATE" ? t.codes.map(ruleTitle).join(", ").toLowerCase() : "cleared to send";
 }
 
-function renderRail(){
-  const rail = $("#rail");
-  $("#count").textContent = tickets.length ? tickets.length + " on the rail · scroll →" : "";
-  if (!tickets.length) {
-    rail.innerHTML = '<div class="empty">The rail is empty. Send a ticket into the system and it will hang here.</div>';
-    return;
-  }
-  rail.innerHTML = tickets.map((t, i) => {
-    const dots = [1,2,3,4,5,6].map(k => {
-      const s = stateOf(t, k);
-      const cls = (s === "skip" || s === "wait") ? "pale" : s === "flag" ? "flag" : s === "stop" ? "end" : "";
-      return '<i class="' + cls + '"></i>';
-    }).join("");
-    const kicker = t.state === "busy" ? "RUNNING NOW" : t.state === "error" ? "NO ANSWER" : t.seed ? "DEMO TICKET" : (t.requery ? "SEARCHED TWICE" : "FROM THE QUEUE");
-    const verdict = t.state === "busy" ? "WORKING" : t.state === "error" ? "ERROR" : t.verdict;
-    return '<div class="hang"><div class="strap"></div><div class="clip"></div>' +
-      '<button type="button" class="tk' + (t.id === selectedId ? " on" : "") + (t.state === "busy" ? " busy" : "") + (t.id === arriving ? " arriving" : "") +
-      '" style="--verdict:' + inkOf(t) + '" data-id="' + esc(t.id) + '">' +
-        '<div class="stub"><span class="no">TICKET NO. #' + String(i + 1).padStart(2, "0") + ' · ' + esc(t.id) + '</span><span class="admit">ADMIT ONE</span></div>' +
-        '<span class="notch t"></span><span class="notch b"></span>' +
-        '<div class="main">' +
-          '<span class="kicker">' + kicker + '</span>' +
-          '<span class="cat">' + esc(t.cat) + '</span>' +
-          '<span class="with">the seller wrote</span>' +
-          '<div class="photo"><span class="msg">' + esc(t.text) + '</span><span class="dots">' + dots + '</span></div>' +
-          '<div class="foot"><span class="why">' + esc(whyOf(t)) + '</span><span class="pill">' + esc(verdict) + '</span></div>' +
-        '</div>' +
-      '</button></div>';
-  }).join("");
-  rail.querySelectorAll(".tk").forEach(b => b.addEventListener("click", () => select(b.dataset.id)));
+// ---------------------------------------------------------------- the board
+// Four columns an agent moves tickets through by hand. The system's verdict
+// never changes when a card moves: an escalated ticket that someone has picked
+// up still says ESCALATE while it sits in "Being handled". A ticket the board
+// has never seen lands by its verdict; after that only a drag moves it.
+const COLS = [
+  ["queue", "Needs a person", "var(--esc)"],
+  ["handling", "Being handled", "var(--orange)"],
+  ["replied", "Replied", "var(--squid)"],
+  ["closed", "Closed", "var(--ok)"],
+];
+let board = { queue: [], handling: [], replied: [], closed: [] };
+try { const b = JSON.parse(localStorage.getItem("triage.board") || "null"); if (b) COLS.forEach(([k]) => { board[k] = Array.isArray(b[k]) ? b[k] : []; }); } catch (e) {}
+const defaultCol = t => t.state === "done" && t.verdict !== "ESCALATE" ? "replied" : "queue";
+function placeAll(){
+  const ids = new Set(tickets.map(t => t.id));
+  const placed = new Set();
+  COLS.forEach(([k]) => { board[k] = board[k].filter(id => ids.has(id) && !placed.has(id) && placed.add(id)); });
+  // Newest first, so a ticket the board has not seen goes to the top of its column.
+  tickets.slice().reverse().forEach(t => { if (!placed.has(t.id)) board[defaultCol(t)].unshift(t.id); });
+}
+function persistBoard(){ try { localStorage.setItem("triage.board", JSON.stringify(board)); } catch (e) {} }
+function moveOnBoard(id, col, beforeId){
+  COLS.forEach(([k]) => { board[k] = board[k].filter(x => x !== id); });
+  const list = board[col];
+  const at = beforeId ? list.indexOf(beforeId) : -1;
+  if (at < 0) list.push(id); else list.splice(at, 0, id);
+  persistBoard();
 }
 
-// ---------------------------------------------------------------- the timeline
-// The run, replayed. One row per stop on an axis the operator can drag: bars
-// fill, each stop's decision appears in words once it is made, and the stage
-// panel below follows the playhead. Everything on screen is derived from one
-// playhead position, so the rows keep no state of their own.
+function renderBoard(){
+  placeAll();
+  const byId = Object.fromEntries(tickets.map(t => [t.id, t]));
+  const waiting = board.queue.length;
+  $("#count").textContent = tickets.length + (tickets.length === 1 ? " ticket" : " tickets") + " · " + waiting + " waiting for a person";
+  $("#cols").innerHTML = COLS.map(([key, name, dot]) => {
+    const cards = board[key].map(id => byId[id]).filter(Boolean).map(t => {
+      const kicker = t.state === "busy" ? "RUNNING NOW" : t.state === "error" ? "NO ANSWER" : t.seed ? "DEMO TICKET" : (t.requery ? "SEARCHED TWICE" : "FROM THE QUEUE");
+      const verdict = t.state === "busy" ? "WORKING" : t.state === "error" ? "ERROR" : t.verdict;
+      return '<button type="button" class="tk' + (t.id === selectedId ? " on" : "") + (t.state === "busy" ? " busy" : "") + (t.id === arriving ? " arriving" : "") +
+        '" style="--verdict:' + inkOf(t) + '" data-id="' + esc(t.id) + '" aria-label="' + esc(t.cat + " ticket: " + t.text) + '">' +
+          '<span class="stub"><span>TICKET NO. ' + esc(t.id) + '</span></span>' +
+          '<span class="main">' +
+            '<span class="top"><span class="cat">' + esc(t.cat) + '</span><span class="kicker">' + kicker + '</span></span>' +
+            '<span class="msg">' + esc(t.text) + '</span>' +
+            '<span class="foot"><span class="why">' + esc(whyOf(t)) + '</span><span class="pill">' + esc(verdict) + '</span></span>' +
+          '</span>' +
+        '</button>';
+    }).join("");
+    return '<section class="col" data-col="' + key + '" aria-label="' + name + '">' +
+      '<div class="ch" style="--dotc:' + dot + '"><i></i><b>' + name + '</b><span class="n">' + board[key].length + '</span></div>' +
+      '<div class="list">' + (cards || '<div class="none">nothing here</div>') + '</div>' +
+      '<div class="drop">drop a ticket here</div>' +
+    '</section>';
+  }).join("");
+  $("#cols").querySelectorAll(".tk").forEach(b => {
+    b.addEventListener("click", () => { if (!suppressClick) select(b.dataset.id); });
+    b.addEventListener("pointerdown", onCardDown);
+    b.addEventListener("pointermove", onCardMove);
+    b.addEventListener("pointerup", onCardUp);
+    b.addEventListener("pointercancel", onCardCancel);
+    b.addEventListener("keydown", onCardKey);
+  });
+}
+
+// Drag and drop, done with pointer events rather than the browser's own drag
+// image: the card hides and leaves a slot, a lifted copy follows the pointer,
+// the other cards slide aside as the slot moves, and the copy settles into
+// the slot on release. A press that moves less than 6px is a click.
+let drag = null;
+let suppressClick = false;
+function onCardDown(e){
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  if (drag) return;
+  const card = e.currentTarget;
+  drag = { id: card.dataset.id, card, pid: e.pointerId, x0: e.clientX, y0: e.clientY, active: false, ghost: null, slot: null, col: null };
+  try { card.setPointerCapture(e.pointerId); } catch (err) {}
+}
+function onCardMove(e){
+  if (!drag || e.pointerId !== drag.pid) return;
+  if (!drag.active) {
+    if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) return;
+    startDrag(e);
+  }
+  moveDrag(e);
+}
+function onCardUp(e){
+  if (!drag || e.pointerId !== drag.pid) return;
+  if (drag.active) endDrag(true); else drag = null;
+}
+function onCardCancel(e){
+  if (!drag || e.pointerId !== drag.pid) return;
+  if (drag.active) endDrag(false); else drag = null;
+}
+function startDrag(e){
+  const { card } = drag;
+  const r = card.getBoundingClientRect();
+  drag.active = true;
+  drag.dx = e.clientX - r.left; drag.dy = e.clientY - r.top;
+  const g = card.cloneNode(true);
+  g.classList.add("tk-ghost"); g.classList.remove("arriving");
+  g.style.width = r.width + "px"; g.style.height = r.height + "px";
+  g.style.transform = "translate(" + r.left + "px," + r.top + "px)";
+  g.setAttribute("aria-hidden", "true");
+  document.body.appendChild(g);
+  drag.ghost = g;
+  const slot = document.createElement("div");
+  slot.className = "slot"; slot.style.height = r.height + "px";
+  card.after(slot); card.style.display = "none";
+  drag.slot = slot;
+  drag.col = card.closest(".col"); drag.col.classList.add("over");
+  document.body.classList.add("dragging");
+}
+const visibleCards = list => Array.from(list.querySelectorAll(".tk")).filter(c => c.style.display !== "none");
+function moveDrag(e){
+  drag.ghost.style.transform = "translate(" + (e.clientX - drag.dx) + "px," + (e.clientY - drag.dy) + "px) rotate(1.5deg) scale(1.02)";
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const col = under && under.closest(".col");
+  if (col !== drag.col) { if (drag.col) drag.col.classList.remove("over"); drag.col = col; if (col) col.classList.add("over"); }
+  if (!col) return;
+  const list = col.querySelector(".list");
+  const before = visibleCards(list).find(c => e.clientY < c.getBoundingClientRect().top + c.getBoundingClientRect().height / 2) || null;
+  const current = drag.slot.parentNode === list ? (visibleCards(list).find(c => c.compareDocumentPosition(drag.slot) & Node.DOCUMENT_POSITION_PRECEDING) || null) : undefined;
+  if (current === before) return;
+  const none = list.querySelector(".none"); if (none) none.remove();
+  flip(() => { if (before) list.insertBefore(drag.slot, before); else list.appendChild(drag.slot); });
+}
+// FLIP: remember where every card was, move the slot, then slide each card from its old place to its new one.
+function flip(mutate){
+  const cards = Array.from(document.querySelectorAll(".col .tk")).filter(c => c.style.display !== "none");
+  const was = new Map(cards.map(c => [c, c.getBoundingClientRect().top]));
+  mutate();
+  cards.forEach(c => {
+    const d = was.get(c) - c.getBoundingClientRect().top;
+    if (!d) return;
+    c.style.transition = "none"; c.style.transform = "translateY(" + d + "px)";
+    void c.offsetHeight;
+    c.style.transition = "transform .18s cubic-bezier(.2,.8,.3,1)"; c.style.transform = "";
+  });
+}
+function endDrag(commit){
+  const d = drag; drag = null;
+  suppressClick = true;  // the click that follows this pointerup is the end of a drag, not a pick
+  document.body.classList.remove("dragging");
+  if (d.col) d.col.classList.remove("over");
+  let target = null;
+  if (commit && d.col) {
+    const list = d.col.querySelector(".list");
+    const after = visibleCards(list).find(c => c.compareDocumentPosition(d.slot) & Node.DOCUMENT_POSITION_PRECEDING);
+    target = { col: d.col.dataset.col, before: after ? after.dataset.id : null };
+  } else {
+    flip(() => d.card.after(d.slot));  // slide the slot back to where the card came from
+  }
+  const sr = d.slot.getBoundingClientRect();
+  const g = d.ghost;
+  let done = false;
+  const finish = () => {
+    if (done) return; done = true;
+    g.remove();
+    if (target) moveOnBoard(d.id, target.col, target.before);
+    renderBoard();
+    setTimeout(() => { suppressClick = false; }, 0);
+  };
+  g.classList.add("settle");
+  g.style.transform = "translate(" + sr.left + "px," + sr.top + "px)";
+  g.addEventListener("transitionend", finish, { once: true });
+  setTimeout(finish, 260);
+}
+// Keyboard: shift + arrow moves a focused card to the previous or next column.
+function onCardKey(e){
+  if (!e.shiftKey || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+  const id = e.currentTarget.dataset.id;
+  const at = COLS.findIndex(([k]) => board[k].includes(id));
+  const to = at + (e.key === "ArrowRight" ? 1 : -1);
+  if (to < 0 || to >= COLS.length) return;
+  e.preventDefault();
+  moveOnBoard(id, COLS[to][0], board[COLS[to][0]][0] || null);
+  renderBoard();
+  const card = $("#cols").querySelector('.tk[data-id="' + id + '"]'); if (card) card.focus();
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape" && drag && drag.active) endDrag(false); });
+
+// ---------------------------------------------------------------- the ledger
+// The run, line by line: one row per stop, the decision it made in a sentence,
+// and a one-word status. It replays when a ticket is opened — rows fill in
+// one after another — and the stage panel beside it follows the playhead.
 const ICON = {
-  inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
-  tag: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
-  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
-  again: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
-  history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
-  pen: '<path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/>',
-  scale: '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
-  check: '<path d="M20 6 9 17l-5-5"/>',
-  alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
-  skip: '<path d="M5 12h14"/>',
   play: '<polygon points="6 3 20 12 6 21 6 3"/>',
   pause: '<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
 };
@@ -484,9 +596,8 @@ const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
 const PACE = 560;   // replay milliseconds per slot — a whole run replays in about three seconds
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-// Lay the stops out on the axis. Each stop takes a slot in the order it ran;
-// the second search sits inside "find policy" as a retry, and a stop that did
-// not need to run is a hollow slot, so the operator still sees it was considered.
+// Each stop takes a slot in the order it ran; the second search sits inside
+// "find policy" as a retry. Sentence and word are the decision in plain words.
 function rowsOf(t){
   const live = t.state === "done";
   const rq = live ? t.requery : null;
@@ -495,35 +606,39 @@ function rowsOf(t){
   const R = [];
   let at = 0;
   const add = (i, len, extra) => {
-    const r = Object.assign({ i, start: at, end: at + len, depth: 0, kind: "check", icon: "search", skip: false, flag: false, result: "", sub: "", attempt: 0 }, extra);
+    const r = Object.assign({ i, num: String(i), start: at, end: at + len, depth: 0, tone: "check", s: "", w: "", attempt: 0 }, extra);
     at = r.end; R.push(r); return r;
   };
-  add(0, 0.35, { kind: "io", icon: "inbox", result: "received", sub: "the seller’s own words" });
-  add(1, 1, { kind: "model", icon: "tag", result: live ? "filed under " + t.cat : "" });
-  const find = add(2, rq ? 1.6 : 1.3, { icon: "search", flag: live && !t.close, result: live ? (t.close ? "close match" : "weak match") : "", sub: live && t.top ? t.top.title : "" });
-  const again = { i: 3, depth: 1, kind: "check", icon: "again", attempt: 2, start: rq ? find.start + 0.8 : find.end - 0.3, end: find.end, skip: !rq, flag: false, result: "", sub: "" };
-  if (live && !rq) again.result = "not needed";
+  add(0, 0.35, { num: "·", tone: "check", s: "The seller’s own words arrived, untouched.", w: "received" });
+  add(1, 1, { tone: "model", s: live ? "Filed under " + t.cat + " so it reaches the right desk." : "", w: live ? "sorted" : "" });
+  const title = live && t.top ? t.top.title : "";
+  const find = add(2, rq ? 1.6 : 1.3, live ? (t.close
+    ? { tone: "check", s: "Close match on " + title + ".", w: "close match" }
+    : { tone: "flag", s: "Best page was " + title + " — not close enough to build on.", w: "weak match" }) : {});
+  const again = { i: 3, num: "3", depth: 1, attempt: 2, start: rq ? find.start + 0.8 : find.end - 0.3, end: find.end, tone: "skip", s: "", w: "" };
+  if (live && !rq) { again.s = "The first search was close enough."; again.w = "not needed"; }
   else if (rq) {
-    again.result = rq.better ? (rq.close ? "a closer page came up" : "a better page, still not close") : "no better page came up";
-    again.flag = !rq.close;
-    again.sub = rq.better && rq.top ? rq.top.title : "";
+    if (rq.better && rq.close) { again.tone = "check"; again.s = "Tried the words sellers use. A closer page came up."; again.w = "closer page"; }
+    else if (rq.better) { again.tone = "flag"; again.s = "Tried the words sellers use. A better page came up, still not close."; again.w = "still not close"; }
+    else { again.tone = "flag"; again.s = "Tried the words sellers use. No better page came up."; again.w = "no better page"; }
   }
   R.push(again);
-  const past = { kind: "check", icon: "history" };
+  const past = {};
   if (!live) {}
-  else if (!p || !p.checked) { past.skip = true; past.result = "not checked"; }
-  else if (!p.similar.length) past.result = "first time asked";
-  else if (p.conflict) { past.flag = true; past.result = "a different answer went out"; past.sub = ago(p.lastSent.when); }
-  else if (p.lastSent) { past.result = "same answer as last time"; past.sub = ago(p.lastSent.when); }
-  else past.result = "seen before, none sent";
+  else if (!p || !p.checked) { past.tone = "skip"; past.s = "Earlier replies were not checked on this ticket."; past.w = "not checked"; }
+  else if (!p.similar.length) { past.tone = "check"; past.s = "No earlier ticket asks this question."; past.w = "first time"; }
+  else if (p.conflict) { past.tone = "flag"; past.s = "Answered before, " + ago(p.lastSent.when) + " — on a different policy page."; past.w = "different answer"; }
+  else if (p.lastSent) { past.tone = "check"; past.s = "Answered before, " + ago(p.lastSent.when) + " — on the same policy page."; past.w = "same answer"; }
+  else { past.tone = "check"; past.s = "Similar tickets came in before; every one was held for a person."; past.w = "seen before"; }
   add(4, 1, past);
-  const draft = { kind: "model", icon: "pen" };
+  const draft = { tone: "model" };
   if (!live) {}
-  else if (t.refused) { draft.flag = true; draft.result = "declined to draft"; }
-  else if (t.quotesOk) { draft.result = "every quote checks out"; draft.sub = t.verified.length === 1 ? "1 line quoted" : t.verified.length + " lines quoted"; }
-  else { draft.flag = true; draft.result = t.unverified.length ? "a quote does not check out" : t.urlsInvented.length ? "a link does not check out" : "nothing quoted from the policy"; }
+  else if (t.refused) { draft.tone = "flag"; draft.s = "The system declined to draft rather than guess."; draft.w = "declined"; }
+  else if (t.quotesOk) { draft.s = "Every quoted line matches the policy page word for word."; draft.w = "checks out"; }
+  else { draft.tone = "flag"; draft.w = "does not check out"; draft.s = t.unverified.length ? "A reply was written, but a quoted line is not on the policy page." : t.urlsInvented.length ? "A reply was written, but a link points to a page that does not exist." : "A reply was written, but nothing in it is quoted from the policy."; }
   add(5, 1, draft);
-  add(6, 0.8, { kind: "verdict", icon: "scale", flag: escl, result: live ? (escl ? "needs a person" : "cleared to send") : "", sub: escl ? t.codes.map(ruleTitle).join(", ").toLowerCase() : "" });
+  const titles = escl ? t.codes.map(ruleTitle).join(", ").toLowerCase() : "";
+  add(6, 0.8, { tone: "end", s: !live ? "" : escl ? (t.codes.length === 1 ? "One rule says" : t.codes.length + " rules say") + " a person must look first: " + titles + "." : "No rule applied. The reply goes out as written.", w: !live ? "" : escl ? "needs a person" : "cleared to send" });
   return { rows: R, total: at };
 }
 
@@ -538,8 +653,7 @@ function paint(){
   rows.forEach((r, k) => {
     const el = TL.els[k], dur = r.end - r.start;
     const p = dur > 0 ? clamp((t - r.start) / dur, 0, 1) : (t >= r.start ? 1 : 0);
-    el.style.setProperty("--p", p.toFixed(4));
-    // Strictly past its start: a stop clicked in the gutter parks the playhead on its
+    // Strictly past its start: a stop clicked in the list parks the playhead on its
     // end, which is the next stop's start, and that next stop has not begun yet.
     const st = !live ? (k === 0 ? "done" : "queued") : t <= r.start ? "queued" : p < 1 ? "running" : "done";
     if (el.dataset.state !== st) el.dataset.state = st;
@@ -547,8 +661,6 @@ function paint(){
   });
   const k = TL.pinned ?? under;
   rows.forEach((r, j) => { TL.els[j].dataset.sel = String(live && j === k); });
-  // The stage panel shows the stop under the playhead. While the live system is
-  // still working there is nothing decided yet, so it shows the first stop's wait.
   const next = live ? rows[k].i : 1;
   if (next !== stage) { stage = next; renderStage(); }
   root.dataset.run = TL.playing ? "playing" : "idle";
@@ -601,58 +713,50 @@ function renderTrail(){
   const el = $("#trail");
   const t = tickets.find(x => x.id === selectedId);
   halt();
-  if (!t) { el.innerHTML = '<div class="tl"><div class="hd"><span class="text" style="color:var(--sec)">Nothing open yet.</span></div></div>'; TL.root = null; stage = 0; renderStage(); return; }
+  if (!t) { el.innerHTML = '<div class="lg"><div class="hd"><span class="text" style="color:var(--sec)">Nothing open yet.</span></div><div class="body"><div class="runs"></div><div class="pane"><section class="stage" id="stage"></section></div></div></div>'; TL.root = null; stage = 0; renderStage(); return; }
   const live = t.state === "done";
   const { rows, total } = rowsOf(t);
-  const pct = v => (v / total * 100).toFixed(3) + "%";
   const verdict = t.state === "busy" ? "WORKING" : t.state === "error" ? "ERROR" : t.verdict;
   const why = live ? (t.verdict === "ESCALATE" ? "needs a person — " + whyOf(t) : whyOf(t)) : whyOf(t);
   const took = live && t.took ? (t.took < 1000 ? "decided in under a second" : "decided in " + (t.took < 10000 ? (t.took / 1000).toFixed(1) : Math.round(t.took / 1000)) + " s") : "";
-  const stopsOnAxis = rows.filter(r => !r.depth && r.i > 0);
   el.innerHTML =
-    '<div class="tl" id="tl" style="--verdict:' + inkOf(t) + '" data-run="idle" data-live="' + live + '">' +
+    '<div class="lg" id="lg" style="--verdict:' + inkOf(t) + ';--verdictBg:' + tintOf(t) + '" data-run="idle" data-live="' + live + '">' +
       '<div class="hd"><i class="dot"></i><span class="cat">' + esc(t.cat) + '</span><span class="text">“' + esc(t.text) + '”</span><span class="why">' + esc(why) + '</span>' +
         (took ? '<span class="took">' + took + '</span>' : "") + '<span class="pill">' + esc(verdict) + '</span></div>' +
-      '<div class="ruler"><span class="k k1">STOP</span><div class="box scrub" data-inset="0">' +
-        stopsOnAxis.map(r => '<span class="n" style="left:' + pct((r.start + r.end) / 2) + '">' + r.i + '</span>').join("") +
-      '</div><span class="k k2">WHAT IT DECIDED</span></div>' +
-      '<div class="rows">' +
-        '<div class="box grid" aria-hidden="true">' + stopsOnAxis.map(r => '<i style="left:' + pct(r.start) + '"></i>').join("") + '</div>' +
-        '<ol aria-label="The stops this ticket went through">' + rows.map((r, k) => {
+      '<div class="body">' +
+        '<div class="runs"><div class="guide" aria-hidden="true"></div>' + rows.map((r, k) => {
           const S = STOPS[r.i];
-          return '<li class="row" data-k="' + k + '" data-kind="' + r.kind + '" data-flag="' + r.flag + '" data-skip="' + r.skip + '" data-state="queued" style="--p:0">' +
-            (r.depth ? '<i class="guide"></i>' : "") +
-            '<button type="button" class="lab" data-k="' + k + '" style="padding-left:' + (r.depth * 12 + 4) + 'px" aria-label="' + esc(S[1] + ": " + S[2]) + '">' +
-              svg(r.icon) + '<span class="nm">' + S[1] + '</span>' + (r.attempt ? '<span class="x2">×' + r.attempt + '</span>' : "") + '<span class="tip">' + esc(S[2]) + '</span></button>' +
-            '<div class="trk"><div class="bar" style="left:' + pct(r.start) + ';width:' + pct(r.end - r.start) + '"><i class="g"></i><i class="f"></i></div></div>' +
-            '<div class="res">' + (r.result ? svg(r.skip ? "skip" : r.flag ? "alert" : "check") + '<span class="r">' + esc(r.result) + '</span>' + (r.sub ? '<span class="s">' + esc(r.sub) + '</span>' : "") : "") + '</div>' +
-          '</li>';
-        }).join("") + '</ol>' +
-        '<div class="box ph" aria-hidden="true"><div><i></i><b></b></div></div>' +
-        '<div class="box scrub" data-inset="0"></div>' +
+          return '<button type="button" class="row" data-k="' + k + '" data-depth="' + r.depth + '" data-tone="' + r.tone + '" data-state="queued" aria-label="' + esc(S[1] + ": " + S[2]) + '">' +
+            '<span class="node">' + r.num + '</span>' +
+            '<span class="txt"><span class="nm">' + (r.i > 0 ? r.i + " · " : "") + S[1] + (r.attempt ? '<span class="x2">×' + r.attempt + '</span>' : "") + '</span>' +
+            '<span class="s">' + esc(r.s) + '</span></span>' +
+            '<span class="w">' + esc(r.w) + '</span>' +
+          '</button>';
+        }).join("") + '</div>' +
+        '<div class="pane"><section class="stage" id="stage"></section>' +
+          '<div class="tr"><button type="button" class="go" id="go"' + (live ? "" : " disabled") + '></button>' +
+            '<div class="rail2" id="rail2" role="slider" tabindex="0" aria-label="Replay position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-inset="6"><div class="tk2"><i></i></div><div class="th"><div><b></b></div></div></div>' +
+            '<span class="at" id="at"></span></div>' +
+        '</div>' +
       '</div>' +
-      '<div class="tr"><button type="button" class="go" id="go"' + (live ? "" : " disabled") + '></button>' +
-        '<div class="rail2 scrub" id="rail2" role="slider" tabindex="0" aria-label="Replay position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-inset="6"><div class="tk2"><i></i></div><div class="th"><div><b></b></div></div></div>' +
-        '<span class="at" id="at"></span></div>' +
     '</div>';
 
-  TL.root = $("#tl"); TL.rows = rows; TL.total = total; TL.ticket = t; TL.pinned = null;
+  TL.root = $("#lg"); TL.rows = rows; TL.total = total; TL.ticket = t; TL.pinned = null;
   TL.els = Array.from(el.querySelectorAll(".row"));
   TL.rail = $("#rail2"); TL.at = $("#at"); TL.go = $("#go");
   playButton();
 
-  el.querySelectorAll(".lab").forEach(b => b.addEventListener("click", () => {
+  TL.els.forEach(b => b.addEventListener("click", () => {
     if (!live) return;
     const k = +b.dataset.k;
     halt(); TL.pinned = k; seek(rows[k].end);
   }));
-  el.querySelectorAll(".scrub").forEach(s => {
-    s.addEventListener("pointerdown", e => { if (!live) return; halt(); s.setPointerCapture(e.pointerId); scrubFrom(e.clientX, s); });
-    s.addEventListener("pointermove", e => { if (s.hasPointerCapture(e.pointerId)) scrubFrom(e.clientX, s); });
-    s.addEventListener("pointerup", e => { if (s.hasPointerCapture(e.pointerId)) s.releasePointerCapture(e.pointerId); });
-  });
+  const s = TL.rail;
+  s.addEventListener("pointerdown", e => { if (!live) return; halt(); s.setPointerCapture(e.pointerId); scrubFrom(e.clientX, s); });
+  s.addEventListener("pointermove", e => { if (s.hasPointerCapture(e.pointerId)) scrubFrom(e.clientX, s); });
+  s.addEventListener("pointerup", e => { if (s.hasPointerCapture(e.pointerId)) s.releasePointerCapture(e.pointerId); });
   TL.go.addEventListener("click", () => { if (TL.playing) halt(); else play(); });
-  TL.rail.addEventListener("keydown", e => {
+  s.addEventListener("keydown", e => {
     if (!live) return;
     const step = total / 50;
     const d = { ArrowRight: step, ArrowUp: step, ArrowLeft: -step, ArrowDown: -step, PageUp: step * 10, PageDown: -step * 10 }[e.key];
@@ -663,14 +767,12 @@ function renderTrail(){
     e.preventDefault();
   });
 
-  // A different ticket replays from the start. Under reduced motion, or when
-  // the same ticket is redrawn, the playhead lands where the operator can read
-  // the whole run at once.
+  // The first time a ticket is opened it replays from the start. Every later
+  // open shows the finished run, and only the Play button replays it.
   stage = -1;
   if (!live) { TL.t = rows[0].end; paint(); }
-  else if (runs !== animatedRun && !reduceMotion.matches) play(0);
+  else if (!replayed.has(t.id) && !reduceMotion.matches) { replayed.add(t.id); play(0); }
   else { TL.t = total; paint(); }
-  animatedRun = runs;
 }
 
 function renderStage(){
@@ -782,7 +884,7 @@ function renderStage(){
   el.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => select(b.dataset.go)));
 }
 
-function renderAll(){ renderRail(); renderTrail(); }
+function renderAll(){ renderBoard(); renderTrail(); }
 
 function select(id){
   if (id === selectedId) return;
