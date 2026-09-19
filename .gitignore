@@ -17,8 +17,9 @@
 # ── Prose ────────────────────────────────────────────────────────────────
 # Every .md: the handoff, the knowledge base writeup, the planning notes and
 # the per-module READMEs. README.md is deliberately included in this —
-# un-ignore it with `!README.md` when the finalised one is ready to commit.
+# The finalised README is committed; everything else in prose stays local.
 *.md
+!/README.md
 
 # ── Generated documents and diagrams ─────────────────────────────────────
 *.pdf
