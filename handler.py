@@ -3,6 +3,7 @@
     GET  /                                the operator console (HTML)
     POST /ticket        {"text": "..."}   run a ticket, get the decision
     GET  /ticket/{id}                     replay one decision trail
+    GET  /coverage?month=yyyy-mm          what the corpus could not answer
     GET  /health                          liveness + warm the container
 
 WHY THE CONSOLE IS SERVED FROM HERE
@@ -30,6 +31,7 @@ WHY IMPORT FAILURE IS CAUGHT RATHER THAN RAISED
 
 import json
 import sys
+import time
 import traceback
 from pathlib import Path
 
@@ -41,6 +43,7 @@ _INIT_ERROR = None
 
 try:
     import settings          # noqa: E402  (bootstraps gate/ and opensearch/ onto sys.path)
+    import coverage as coverage_mod  # noqa: E402
     import trail as trail_mod  # noqa: E402
     from orchestrator import Pipeline  # noqa: E402
 
@@ -106,12 +109,28 @@ def lambda_handler(event, context):
         # demoing: it pays the cold start while nobody is watching, so the
         # first real ticket runs on a warm container.
         if path == "/health":
+            # The ping that keeps the container alive must also pay the lazy
+            # cost a real ticket would otherwise pay first. The embedding model
+            # loads on its first use, measured at ~13 s inside the classify
+            # step, and a container kept alive by a 2 ms health check still has
+            # that ahead of it. Embedding one word here makes the ping wait
+            # instead of the first visitor; once loaded it stays for the life
+            # of the container, so every later health call is milliseconds.
+            t0 = time.time()
+            warmed = "ok"
+            try:
+                import search as search_mod  # opensearch/search.py
+                search_mod.embed_query("warm up")
+            except Exception as exc:        # noqa: BLE001 — liveness must still answer
+                warmed = "failed: %s" % type(exc).__name__
             return _reply(200, {
                 "ok": True,
                 "retriever": settings.RETRIEVER,
                 "drafter": settings.DRAFTER,
                 "trail": settings.TRAIL,
                 "precedent": settings.PRECEDENT,
+                "warmed": warmed,
+                "warm_ms": int((time.time() - t0) * 1000),
             })
 
         # The console. Read from disk per request rather than cached at import:
@@ -134,6 +153,14 @@ def lambda_handler(event, context):
             if not text:
                 return _reply(400, {"error": "body must be {\"text\": \"...\"}"})
             return _reply(200, _PIPELINE.run(text))
+
+        # What the corpus could not answer this month. One Query on the
+        # month's partition — the function's role has Query and PutItem and
+        # nothing else, which is why coverage.py appends rows instead of
+        # keeping counters. See its docstring.
+        if method == "GET" and path == "/coverage":
+            month = (event.get("queryStringParameters") or {}).get("month")
+            return _reply(200, coverage_mod.report(_PIPELINE.trail, month))
 
         if method == "GET" and path.startswith("/ticket/"):
             ticket_id = path.rsplit("/", 1)[-1]

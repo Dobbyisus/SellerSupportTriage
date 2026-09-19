@@ -105,6 +105,7 @@ def build_ticket(
     draft_quotes_policy: bool = True,
     topic_override: list[str] | None = None,
     conflicts_with_precedent: bool = False,
+    standing_breach: bool = False,
 ) -> dict:
     """Assemble the Cedar resource for one ticket."""
     found = topic_override if topic_override is not None else topics_mod.extract(text)
@@ -118,6 +119,7 @@ def build_ticket(
         "has_citation": has_citation,
         "draft_quotes_policy": draft_quotes_policy,
         "conflicts_with_precedent": conflicts_with_precedent,
+        "standing_breach": standing_breach,
     }
 
 
@@ -134,6 +136,7 @@ def decide(ticket: dict, ticket_id: str = "t1", policy_path=None, policy_text=No
                 "has_citation": ticket["has_citation"],
                 "draft_quotes_policy": ticket["draft_quotes_policy"],
                 "conflicts_with_precedent": bool(ticket.get("conflicts_with_precedent", False)),
+                "standing_breach": bool(ticket.get("standing_breach", False)),
             },
             "parents": [],
         },
@@ -262,6 +265,20 @@ CASES = [
     ("what is the late shipment rate target", "shipping", 0.88, True, True,
      "AUTO_SEND", None, "a consistent precedent changes nothing", False),
 
+    # ---- F8 standing breach ----------------------------------------------
+    # The seller's own figures, read out of their own words by
+    # pipeline/standing.py and compared in Python. Nothing in the wording is
+    # alarming and no topic fires — the numbers are the whole signal.
+    ("just checking in, my ODR is 1.3% this month, is that ok", "account", 0.84, True, True,
+     "ESCALATE", "F8_standing_breach",
+     "DEMO BEAT: calm question, but the numbers are under a selling floor", False, True),
+    ("my late shipment rate is 6% and my valid tracking rate is 80%", "shipping", 0.80, True, True,
+     "ESCALATE", "F8_standing_breach", "two selling floors missed", False, True),
+    # Short of the Prime bar is NOT a standing breach. It costs the badge, not
+    # the business, and it is a fact we can quote — so it still auto-sends.
+    ("my on-time delivery is 92%, am I still eligible for the prime badge", "shipping", 0.86, True, True,
+     "AUTO_SEND", None, "Prime bar missed only — quotable, and sendable", False, False),
+
     # ---- boundary --------------------------------------------------------
     ("what is the valid tracking rate requirement", "shipping", 0.72, True, True,
      "AUTO_SEND", None, "exactly at MIN_SIM — must pass, floor is inclusive"),
@@ -276,7 +293,10 @@ def self_test() -> int:
     for case in CASES:
         text, cat, conf, cite, quotes, expected, expect_rule, label = case[:8]
         conflict = case[8] if len(case) > 8 else False
-        ticket = build_ticket(text, cat, conf, cite, quotes, conflicts_with_precedent=conflict)
+        standing = case[9] if len(case) > 9 else False
+        ticket = build_ticket(text, cat, conf, cite, quotes,
+                              conflicts_with_precedent=conflict,
+                              standing_breach=standing)
         out = decide(ticket)
         ok = out["decision"] == expected
         if ok and expect_rule:

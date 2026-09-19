@@ -51,6 +51,29 @@
   .board .label span:nth-child(2){font-size:11.5px;color:var(--sec)}
   .board .label .count{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--sec)}
   .cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  /* an explicit display beats the [hidden] attribute's UA rule, so both
+     panels have to say so themselves or the swap shows two at once */
+  .cols[hidden],.gaps[hidden]{display:none}
+  /* the gaps panel takes the board's place, same height, so the page below
+     it never moves when an agent looks and comes back */
+  .board .lnk{border:0;background:transparent;font:inherit;font-size:11.5px;color:var(--link);cursor:pointer;padding:0;border-bottom:1px solid transparent}
+  .board .lnk:hover{border-bottom-color:var(--link)}
+  .board .lnk[aria-expanded=true]{color:var(--ink);font-weight:700}
+  .gaps{height:372px;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px}
+  .gaps::-webkit-scrollbar{width:6px} .gaps::-webkit-scrollbar-thumb{background:#B9C0C4;border-radius:3px}
+  .gaps .sum{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;padding-bottom:10px;border-bottom:1px solid var(--line2)}
+  .gaps .sum b{font-size:22px;font-weight:700;line-height:1}
+  .gaps .sum .of{color:var(--sec)}
+  .gaps h4{margin:14px 0 8px;font-size:11px;letter-spacing:.06em;color:var(--sec);font-weight:600;font-family:var(--mono)}
+  .gaps .sub{display:flex;align-items:baseline;gap:10px;margin-top:10px}
+  .gaps .sub .name{font-size:13px;font-weight:700}
+  .gaps .sub .n{font-family:var(--mono);font-size:10.5px;color:var(--esc);border:1px solid var(--escLine);background:var(--escBg);border-radius:10px;padding:1px 7px}
+  .gaps .ex{margin:4px 0 0 2px;padding-left:10px;border-left:2px solid var(--line);font-size:12.5px}
+  .gaps .ex .w{color:var(--ink)}
+  .gaps .ex .m{display:block;font-size:11px;color:var(--mute);margin:1px 0 6px}
+  .gaps .near{display:flex;gap:10px;font-size:12.5px;padding:3px 0;color:var(--sec)}
+  .gaps .near b{margin-left:auto;font-family:var(--mono);font-size:10.5px}
+  .gaps .empty{font-size:13px;color:var(--sec);padding:18px 0}
   .col{height:372px;display:flex;flex-direction:column;border-radius:8px;background:#DFE3E4;border:1px solid var(--line);transition:background .15s,border-color .15s}
   .col.over{background:#D2D9DB;border-color:var(--sec)}
   .col .ch{display:flex;align-items:center;gap:8px;padding:10px 12px 6px;flex-shrink:0}
@@ -122,9 +145,9 @@
   .lg .row[data-tone=skip] .nm,.lg .row[data-state=queued] .nm{color:var(--mute)}
   .lg .row[data-sel=true] .nm{color:var(--ink);font-weight:700}
   .lg .x2{font-size:9px;line-height:14px;padding:0 4px;border:1px solid var(--line);border-radius:3px;color:var(--sec)}
-  .lg .s{font-size:13px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .25s}
+  .lg .s{display:block;font-size:13px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .25s}
   .lg .row[data-tone=skip] .s{color:var(--mute)} .lg .row[data-depth="1"] .s{font-size:12.5px;color:var(--sec)}
-  .lg .w{font-size:11.5px;font-weight:600;white-space:nowrap;color:var(--ok);transition:opacity .25s}
+  .lg .w{flex-shrink:0;font-size:11.5px;font-weight:600;white-space:nowrap;color:var(--ok);transition:opacity .25s}
   .lg .row[data-tone=flag] .w{color:var(--esc)} .lg .row[data-tone=skip] .w{color:var(--mute);font-weight:400} .lg .row[data-tone=end] .w{color:var(--verdict)}
   .lg .row[data-state=queued] .s,.lg .row[data-state=queued] .w,.lg .row[data-state=running] .s,.lg .row[data-state=running] .w{opacity:0}
   .lg .pane{display:flex;flex-direction:column;min-height:0;background:#F7F8F8}
@@ -207,7 +230,7 @@
   <h1>Raise a ticket</h1>
   <form id="form">
     <label for="t" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">Ticket text</label>
-    <input id="t" type="text" autocomplete="off" placeholder="Type what a seller would write…">
+    <input id="t" type="text" autocomplete="off" placeholder="A problem a seller reported, or a question they asked…">
     <button type="submit" class="send" id="send">Send into the system</button>
   </form>
   <div class="try">
@@ -215,6 +238,7 @@
     <button type="button" class="chip" data-x="amazon says my account could be deactivated after a policy violation">Deactivation threat</button>
     <button type="button" class="chip" data-x="my payment is on hold and I don't know why">Held funds</button>
     <button type="button" class="chip" data-x="how do I change the handling time on my listings">Routine question</button>
+    <button type="button" class="chip" data-x="my on-time delivery is 92% and my valid tracking rate is 97%, am I still eligible for the prime badge?">Their own numbers</button>
   </div>
 </section>
 
@@ -222,9 +246,11 @@
   <div class="label">
     <span class="k">THE BOARD</span>
     <span>drag a ticket to the column it belongs in · click one to see why it was decided</span>
+    <button type="button" class="lnk" id="gapsBtn" aria-expanded="false" aria-controls="gaps">what we could not answer</button>
     <span class="count" id="count"></span>
   </div>
   <div class="cols" id="cols"></div>
+  <div class="gaps" id="gaps" hidden></div>
 </section>
 
 <section class="trail" id="trail"></section>
@@ -253,6 +279,7 @@ const RULES = {
   F4_listing_suppression:{ title:"Listing suppressed", reason:"A listing has been hidden, removed or gated. This is on the published escalation list, and it is an area where automated answers are least reliable.", grounding:"Published escalation guidance names incorrect listing suppressions as cases worth escalating.", badge:"PUBLISHED GUIDANCE", url:GUIDE },
   F5_legal:{ title:"Legal matter", reason:"The ticket mentions IP, counterfeits, lawyers, police or regulators. An automated system must never state Amazon’s legal position.", grounding:"Our own rule: a drafted reply on a legal matter creates exposure whether or not it is correct.", badge:"OUR OWN RULE", url:"" },
   F7_conflicting_precedent:{ title:"Conflicts with an earlier reply", reason:"Another agent already answered this same question, and that reply was built on a different policy page. Sending a second, different answer is the inconsistency sellers complain about most, so a person reconciles the two first.", grounding:"Sellers on Amazon’s own forums report different representatives giving conflicting information on the same issue.", badge:"SELLER FORUMS", url:FORUM },
+  F8_standing_breach:{ title:"Account standing", reason:"A figure this seller quoted is the wrong side of a limit Amazon publishes for selling in the store. Whether or not they have noticed, the account is in enforcement territory, so a person checks its real standing before anything goes out.", grounding:"The limits come from Amazon’s own published pages — order defect rate, late shipment rate, cancellation rate, valid tracking rate and on-time delivery. The comparison is arithmetic, done in code, never by the writer.", badge:"AMAZON POLICY PAGE", url:"https://sellercentral.amazon.com/help/hub/reference/external/G200285170?locale=en-US", link:"Read the policy that sets this limit" },
   F6_ungrounded:{ title:"Reply not grounded in policy", reason:"The draft could not be tied to a real policy page — the search was not close enough, or a quoted line or link did not check out. Sending it would be a generic template reply.", grounding:"Published escalation guidance treats a template reply that does not address the seller’s actual situation as itself a reason to escalate.", badge:"PUBLISHED GUIDANCE", url:GUIDE },
 };
 const ruleTitle = id => (RULES[id] || {title:id.replace(/^F\d_/, "").replace(/_/g, " ")}).title;
@@ -260,12 +287,13 @@ const topicLabel = t => t.replace(/_/g, " ").replace(/^ip /, "IP ");
 
 const STOPS = [
   ["·","TICKET IN","The seller’s own words, before anything runs"],
-  ["1","SORT","Which desk this belongs to"],
+  ["1","ROUTE","Which desk this belongs to"],
   ["2","FIND POLICY","The Amazon policy page the reply will be built on"],
   ["3","SEARCH AGAIN","One more try, in the words sellers actually use"],
   ["4","ASKED BEFORE","Whether another agent already answered this question, and what they sent"],
-  ["5","DRAFT","The reply, checked line by line against the policy"],
-  ["6","DECIDE","The rulebook says whether a person must look first"],
+  ["5","CHECK STANDING","Any figures the seller quoted, against the limits"],
+  ["6","DRAFT","The reply, checked line by line against the policy"],
+  ["7","DECIDE","The rulebook says whether a person must look first"],
 ];
 const LAST = STOPS.length - 1;
 
@@ -285,7 +313,11 @@ function ago(ms){
 // never blank. Anything the operator raises hangs in front of them.
 const SC = "https://sellercentral.amazon.com/help/hub/reference/external/";
 const BSA = "https://m.media-amazon.com/images/G/01/rainier/help./1.1_BSA_PDF_English.pdf";
-const seedBase = { state: "done", seed: true, provenance: [], refused: false, unverified: [], urlsInvented: [], detail: "", precedent: null };
+// standing is set for all six because it is true of all six: not one of these
+// tickets quotes a performance figure, so the check has nothing to compare.
+// A ticket that does quote one is on the TRY row — send it and watch stop 5.
+const seedBase = { state: "done", seed: true, provenance: [], refused: false, unverified: [], urlsInvented: [], detail: "", precedent: null,
+  intent: "", standing: { checked: false, summary: "No account numbers in this ticket — nothing to check.", findings: [] } };
 const SEEDS = [
   { id: "ac5d28b0", took: 2281, cat: "payments", verdict: "ESCALATE", codes: ["F2_payments", "F6_ungrounded"], topics: ["payment_hold"], steps: 5,
     text: "my payment is on hold and I don't know why", close: false,
@@ -326,6 +358,7 @@ let tickets = [];          // newest first; the operator's own tickets, then the
 let selectedId = null;
 let stage = -1;           // the stop the panel shows; the timeline's playhead sets it
 let runs = 0;
+let gapsLoaded = false;  // the month's figures, once read, until a new run changes them
 let arriving = null;
 const replayed = new Set(); // tickets that have had their first-open replay; after that only Play replays
 
@@ -379,6 +412,13 @@ function normalize(r){
       close: (rq.best_cosine ?? 0) >= minSim,
       top: rq.improved ? passage(best) : null,
     } : null,
+    // How the ticket was read — a question asked, or a problem reported. It
+    // changes the shape of the reply and nothing else; it is never a reason
+    // to escalate or not to.
+    intent: r.intent || "",
+    // The seller's own figures against the published limits. Computed in
+    // Python before drafting, so everything here is read, never recomputed.
+    standing: r.standing || null,
     quotesOk: !!g.draft_quotes_policy,
     refused: !!g.refused,
     draft: r.draft || "",
@@ -611,7 +651,7 @@ function rowsOf(t){
     at = r.end; R.push(r); return r;
   };
   add(0, 0.35, { num: "·", tone: "check", s: "The seller’s own words arrived, untouched.", w: "received" });
-  add(1, 1, { tone: "model", s: live ? "Filed under " + t.cat + " so it reaches the right desk." : "", w: live ? "sorted" : "" });
+  add(1, 1, { tone: "model", s: live ? "Filed under " + t.cat + " so it reaches the right desk." : "", w: live ? "routed" : "" });
   const title = live && t.top ? t.top.title : "";
   const find = add(2, rq ? 1.6 : 1.3, live ? (t.close
     ? { tone: "check", s: "Close match on " + title + ".", w: "close match" }
@@ -632,14 +672,27 @@ function rowsOf(t){
   else if (p.lastSent) { past.tone = "check"; past.s = "Answered before, " + ago(p.lastSent.when) + " — on the same policy page."; past.w = "same answer"; }
   else { past.tone = "check"; past.s = "Similar tickets came in before; every one was held for a person."; past.w = "seen before"; }
   add(4, 1, past);
+  const st = live ? (t.standing || null) : null;
+  const stand = { tone: "check" };
+  if (!live) {}
+  else if (!st) { stand.tone = "skip"; stand.s = "This ticket ran before the standing check existed."; stand.w = "not checked"; }
+  else if (!st.checked) { stand.tone = "skip"; stand.s = "No figures in this ticket, so there was nothing to check."; stand.w = "nothing to check"; }
+  else {
+    const bad = (st.findings || []).filter(f => f.status === "breach");
+    const near = (st.findings || []).filter(f => f.status === "close");
+    if (bad.length) { stand.tone = "flag"; stand.s = bad[0].sentence; stand.w = bad.length === 1 ? "under the line" : bad.length + " under the line"; }
+    else if (near.length) { stand.tone = "flag"; stand.s = near[0].sentence; stand.w = "close to the line"; }
+    else { stand.s = "Every figure the seller quoted clears its published limit."; stand.w = "all clear"; }
+  }
+  add(5, 1, stand);
   const draft = { tone: "model" };
   if (!live) {}
   else if (t.refused) { draft.tone = "flag"; draft.s = "The system declined to draft rather than guess."; draft.w = "declined"; }
   else if (t.quotesOk) { draft.s = "Every quoted line matches the policy page word for word."; draft.w = "checks out"; }
   else { draft.tone = "flag"; draft.w = "does not check out"; draft.s = t.unverified.length ? "A reply was written, but a quoted line is not on the policy page." : t.urlsInvented.length ? "A reply was written, but a link points to a page that does not exist." : "A reply was written, but nothing in it is quoted from the policy."; }
-  add(5, 1, draft);
+  add(6, 1, draft);
   const titles = escl ? t.codes.map(ruleTitle).join(", ").toLowerCase() : "";
-  add(6, 0.8, { tone: "end", s: !live ? "" : escl ? (t.codes.length === 1 ? "One rule says" : t.codes.length + " rules say") + " a person must look first: " + titles + "." : "No rule applied. The reply goes out as written.", w: !live ? "" : escl ? "needs a person" : "cleared to send" });
+  add(7, 0.8, { tone: "end", s: !live ? "" : escl ? (t.codes.length === 1 ? "One rule says" : t.codes.length + " rules say") + " a person must look first: " + titles + "." : "No rule applied. The reply goes out as written.", w: !live ? "" : escl ? "needs a person" : "cleared to send" });
   return { rows: R, total: at };
 }
 
@@ -793,9 +846,12 @@ function renderStage(){
   } else if (err) {
     badge = "ERROR"; badgeCls = "bad"; lead = "The live system did not answer: " + (t.error || "unknown error") + ". Try again in a moment.";
   } else if (stage === 1) {
-    badge = "SORTED"; lead = "Filed as a " + t.cat + " question so it reaches the right desk.";
-    chips = '<span class="k">FILED UNDER</span><span class="chip">' + esc(t.cat) + '</span>';
-    aside = "Sorting only decides where a ticket goes. It never decides whether a reply can be sent — that is the rulebook’s job at the last stop.";
+    badge = "ROUTED"; lead = "Filed as " + (/^[aeiou]/i.test(t.cat) ? "an " : "a ") + t.cat + " question so it reaches the right desk."
+      + (t.intent === "question" ? " The seller is asking something rather than reporting a problem, so the reply answers the question instead of apologising for one."
+       : t.intent === "problem" ? " The seller is reporting a problem, so the reply acknowledges it before answering." : "");
+    chips = '<span class="k">FILED UNDER</span><span class="chip">' + esc(t.cat) + '</span>'
+      + (t.intent ? '<span class="k">READ AS</span><span class="chip">' + (t.intent === "question" ? "a question" : "a problem") + '</span>' : "");
+    aside = "Routing only decides where a ticket goes. It never decides whether a reply can be sent — that is the rulebook’s job at the last stop.";
   } else if (stage === 2) {
     badge = t.close ? "CLOSE MATCH" : "WEAK MATCH"; badgeCls = t.close ? "good" : "bad";
     lead = t.close ? "A policy page was found that closely matches what the seller is asking." : "The best page found is not a close enough match to build a reply on, so the search will be tried again.";
@@ -840,6 +896,32 @@ function renderStage(){
     }
     aside = "Sellers on Amazon’s own forums report different agents giving different answers to the same question. Checking what was already sent, before drafting, is how the system keeps to one answer per question.";
   } else if (stage === 5) {
+    const st = t.standing;
+    if (!st) {
+      badge = "NOT CHECKED";
+      lead = t.seed ? "This demo ticket was recorded before the standing check existed, so there is nothing to show here." : "The standing check did not run on this ticket. The other rules still applied in full.";
+    } else if (!st.checked) {
+      badge = "NOTHING TO CHECK";
+      lead = "This seller did not quote any of their own figures, so there was nothing to compare. The check only ever reads numbers the seller has written down.";
+    } else {
+      const bad = (st.findings || []).filter(f => f.status === "breach");
+      const near = (st.findings || []).filter(f => f.status === "close");
+      badge = bad.length ? "UNDER THE LINE" : near.length ? "CLOSE TO THE LINE" : "ALL CLEAR";
+      badgeCls = bad.length ? "bad" : near.length ? "" : "good";
+      lead = bad.length
+        ? (bad.length === 1 ? "One of the figures this seller quoted is the wrong side of a published limit." : bad.length + " of the figures this seller quoted are the wrong side of a published limit.") + " Every comparison below was worked out in code, not written by the AI."
+        : near.length ? "Everything the seller quoted clears its limit, but not by much. Worth telling them before it slips."
+        : "Every figure the seller quoted clears the limit published for it.";
+      chips = '<span class="k">READ FROM THE TICKET</span>' + (st.readings || []).map(r => '<span class="chip">' + esc(r.matched) + '</span>').join("");
+      quotes = '<span class="k">CHECKED AGAINST THE PUBLISHED LIMITS</span>' + (st.findings || []).map(f => {
+        const ok = f.status !== "breach";
+        return '<div class="q' + (ok ? "" : " bad") + '"><span class="m">' + (f.status === "breach" ? "✗" : f.status === "close" ? "!" : "✓") + '</span><span class="x">' + esc(f.sentence) + '</span><span class="v">' + esc(f.tier === "prime" ? "prime badge" : "selling in the store") + '</span></div>';
+      }).join("");
+      const src = (st.findings || [])[0];
+      if (src) pass = passage("WHERE THAT LIMIT IS PUBLISHED", { title: src.title, path: "", url: src.url });
+    }
+    aside = "Amazon decides what a seller keeps — the Prime badge, and eventually the shop itself — on figures with published limits. The comparison is arithmetic, so it is done in code and handed to the writer as a finished fact. A model that is confident and wrong about a number here costs someone their business.";
+  } else if (stage === 6) {
     if (t.refused) { badge = "DECLINED"; badgeCls = "bad"; lead = "The system declined to draft rather than guess, so there is nothing grounded to send."; }
     else {
       badge = t.quotesOk ? "CHECKS OUT" : "DOES NOT CHECK OUT"; badgeCls = t.quotesOk ? "good" : "bad";
@@ -863,23 +945,31 @@ function renderStage(){
       cards = t.codes.map(id => {
         const r = RULES[id] || { title: ruleTitle(id), reason: "", grounding: "", badge: "", url: "" };
         const prov = t.provenance.find(p => p.rule === id) || {};
-        const fired = id === "F6_ungrounded" ? "because the draft could not be tied to the policy" : id === "F7_conflicting_precedent" ? "because an earlier reply used a different policy page" : "because of the seller’s wording";
+        const fired = id === "F6_ungrounded" ? "because the draft could not be tied to the policy" : id === "F7_conflicting_precedent" ? "because an earlier reply used a different policy page" : id === "F8_standing_breach" ? "because of a figure the seller quoted" : "because of the seller’s wording";
         const url = r.url || prov.source || "";
         return '<article class="card"><div class="ch"><span class="t">' + esc(r.title) + '</span><span class="f">' + fired + '</span><span class="b">' + esc(r.badge || (prov.source_type || "").replace(/_/g, " ").toUpperCase()) + '</span></div>' +
-          '<div class="cb"><p>' + esc(r.reason || (t.provenance.find(p => p.rule === id) || {}).grounding || "") + '</p><p class="g">' + esc(r.grounding || "") + '</p>' + (url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">Read the escalation guidance</a>' : "") + '</div></article>';
+          '<div class="cb"><p>' + esc(r.reason || (t.provenance.find(p => p.rule === id) || {}).grounding || "") + '</p><p class="g">' + esc(r.grounding || "") + '</p>' + (url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(r.link || "Read the escalation guidance") + '</a>' : "") + '</div></article>';
       }).join("");
     } else {
-      cards = '<article class="card ok"><div class="ch"><span class="t">Routine, grounded question</span><span class="f">nothing needed a person</span><span class="b">CLEARED</span></div><div class="cb"><p>Routine questions are most of the queue. When the reply is built on a matching policy page and every quote checks out, holding it would only slow the seller down.</p><p class="g">All seven escalation rules were checked first. None applied.</p></div></article>';
+      cards = '<article class="card ok"><div class="ch"><span class="t">Routine, grounded question</span><span class="f">nothing needed a person</span><span class="b">CLEARED</span></div><div class="cb"><p>Routine questions are most of the queue. When the reply is built on a matching policy page and every quote checks out, holding it would only slow the seller down.</p><p class="g">All eight escalation rules were checked first. None applied.</p></div></article>';
     }
     aside = "A fixed rulebook makes the call, not the AI. If any rule says a person must look, that wins — no matter how confident the draft sounds.";
   }
+
+  const P = paper ? '<div class="paper"><p>' + esc(paper) + '</p></div>' : "";
+  const C = chips ? '<div class="chips">' + chips + '</div>' : "";
+  const Q = quotes ? '<div class="quotes">' + quotes + '</div>' : "";
 
   el.innerHTML =
     '<div class="head"><span class="n">STOP ' + (stage + 1) + ' / ' + STOPS.length + '</span><span class="name">' + S[1].replace("FIND POLICY", "FIND THE POLICY").replace("DRAFT", "DRAFT THE REPLY") + '</span><span class="sub">' + esc(S[2].toLowerCase()) + '</span>' + (badge ? '<span class="badge ' + badgeCls + '">' + esc(badge) + '</span>' : "") + '</div>' +
     '<div class="body"><div class="left">' +
       (lead ? '<p class="lead">' + esc(lead) + '</p>' : "") +
-      (stage === 4 ? (quotes ? '<div class="quotes">' + quotes + '</div>' : "") + pass + (chips ? '<div class="chips">' + chips + '</div>' : "") + (paper ? '<div class="paper"><p>' + esc(paper) + '</p></div>' : "")
-                   : (paper ? '<div class="paper"><p>' + esc(paper) + '</p></div>' : "") + (chips ? '<div class="chips">' + chips + '</div>' : "") + pass + (quotes ? '<div class="quotes">' + quotes + '</div>' : "")) +
+      // Each stop leads with the thing that stop is about: the earlier replies
+      // at stop 4, the seller's own figures at stop 5, the drafted reply
+      // everywhere else.
+      (stage === 4 ? Q + pass + C + P
+       : stage === 5 ? C + Q + pass
+       : P + C + pass + Q) +
       (cards ? '<div class="cards">' + cards + '</div>' : "") +
     '</div>' + (aside ? '<div class="aside"><span class="k">WHY THIS STOP EXISTS</span><p>' + esc(aside) + '</p></div>' : "") + '</div>';
   el.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => select(b.dataset.go)));
@@ -906,6 +996,7 @@ async function send(text){
     const body = await res.json();
     if (!res.ok || body.error) throw new Error(body.error || ("HTTP " + res.status));
     const done = normalize(body);
+    gapsLoaded = false;   // this run changed the month's figures
     const i = tickets.findIndex(x => x.id === tmpId);
     if (i >= 0) tickets[i] = done;
     if (selectedId === tmpId) selectedId = done.id;
@@ -927,6 +1018,62 @@ $("#form").addEventListener("submit", e => {
   send(text);
 });
 document.querySelectorAll(".chip[data-x]").forEach(b => b.addEventListener("click", () => { $("#t").value = b.dataset.x; $("#t").focus(); }));
+
+// ---------------------------------------------------------------- the gaps
+// The other half of the trail. Every run this month writes one small row, and
+// this reads them back: how many tickets found a policy page to stand on, how
+// many could not, and what those ones were asking about. A refusal is only a
+// cost until somebody counts them; counted, it is a list of pages worth
+// writing. Fetched when the panel is opened, never on load — nobody waits for
+// a report they have not asked for.
+function renderGaps(rep){
+  const el = $("#gaps");
+  if (!rep) { el.innerHTML = '<p class="empty">The monthly figures could not be read just now. Nothing else on this page is affected.</p>'; return; }
+  if (!rep.runs) { el.innerHTML = '<p class="empty">No tickets have run this month yet.</p>'; return; }
+
+  let html = '<div class="sum"><b>' + rep.gaps + '</b><span>of <b class="of">' + rep.runs +
+    '</b> tickets this month could not be answered from a policy page</span></div>';
+
+  if (!rep.gaps) {
+    html += '<p class="empty">Every ticket this month found a page to stand on.</p>';
+  } else {
+    html += "<h4>WHAT THEY WERE ASKING ABOUT</h4>";
+    rep.subjects.forEach(s => {
+      html += '<div class="sub"><span class="name">' + esc(s.subject.replace(/_/g, " ")) + '</span><span class="n">' + s.gaps + '</span></div>';
+      s.examples.forEach(ex => {
+        html += '<div class="ex"><span class="w">“' + esc(ex.text) + '”</span><span class="m">' +
+          esc(ex.reasons.join("; ") || "no page was close enough") + '</span></div>';
+      });
+    });
+    if (rep.nearest_pages && rep.nearest_pages.length) {
+      html += "<h4>WHAT THE SEARCH KEPT REACHING FOR INSTEAD</h4>";
+      rep.nearest_pages.forEach(p => {
+        html += '<div class="near"><span>' + esc(p.title) + '</span><b>' + p.times + '</b></div>';
+      });
+    }
+  }
+  el.innerHTML = html;
+}
+
+$("#gapsBtn").addEventListener("click", async () => {
+  const btn = $("#gapsBtn"), panel = $("#gaps"), cols = $("#cols");
+  const open = btn.getAttribute("aria-expanded") !== "true";
+  btn.setAttribute("aria-expanded", String(open));
+  btn.textContent = open ? "back to the board" : "what we could not answer";
+  panel.hidden = !open;
+  cols.hidden = open;
+  if (!open || gapsLoaded) return;
+  panel.innerHTML = '<p class="empty">Reading this month’s tickets…</p>';
+  try {
+    const res = await fetch(API + "/coverage");
+    const body = await res.json();
+    if (!res.ok || body.error) throw new Error(body.error || ("HTTP " + res.status));
+    renderGaps(body);
+    gapsLoaded = true;
+  } catch (e) {
+    renderGaps(null);
+  }
+});
 
 // Warm the container and say what is behind the page, in plain words.
 fetch(API + "/health").then(r => r.json()).then(h => {

@@ -4,10 +4,16 @@ Records use the single-table layout from the architecture:
 
     pk = TICKET#<id>     sk = META        the ticket and its outcome
     pk = TICKET#<id>     sk = STEP#<n>    one row per pipeline step
+    pk = COVERAGE#<ym>   sk = RUN#<ms>#<id>   one row per run, for the gaps report
 
 One query on the partition key returns the whole trail in order, so the audit
 log and the console's data source are the same read. That is deliberate: the
 thing shown to a judge is the thing the system actually wrote.
+
+The second partition is the same trick applied to the month instead of the
+ticket: one query returns every run in it, which is how coverage.py reports
+what the corpus could not answer without ever scanning the table. The shape of
+those rows belongs to coverage.py; only the read primitive lives here.
 
 The local store writes the identical records to a JSONL file, so switching to
 DynamoDB changes where rows land and nothing about their shape.
@@ -54,6 +60,7 @@ def step_item(ticket_id: str, n: int, step: str, detail: dict) -> dict:
 class Trail(Protocol):
     def put(self, item: dict) -> None: ...
     def query(self, ticket_id: str) -> list[dict]: ...
+    def query_pk(self, pk: str) -> list[dict]: ...
 
 
 class JsonlTrail:
@@ -68,6 +75,9 @@ class JsonlTrail:
             fh.write(json.dumps(item, ensure_ascii=False) + "\n")
 
     def query(self, ticket_id: str) -> list[dict]:
+        return self.query_pk("TICKET#%s" % ticket_id)
+
+    def query_pk(self, pk: str) -> list[dict]:
         """Last write wins per (pk, sk), mirroring DynamoDB's put_item.
 
         The file is append-only, so a META row written at the start and again
@@ -75,7 +85,6 @@ class JsonlTrail:
         and the local store has to behave the same way or the console shows a
         ticket as both in_progress and complete.
         """
-        pk = "TICKET#%s" % ticket_id
         latest: dict[str, dict] = {}
         for r in self.all():
             if r.get("pk") == pk:
@@ -117,12 +126,25 @@ class DynamoTrail:
         self.table.put_item(Item=_floats_to_decimal(item))
 
     def query(self, ticket_id: str) -> list[dict]:
+        return self.query_pk("TICKET#%s" % ticket_id)
+
+    def query_pk(self, pk: str) -> list[dict]:
+        """Every row in one partition, in sort-key order.
+
+        Paginated, unlike the original single-ticket read: a ticket has eight
+        steps and never needs a second page, but a month of runs will.
+        """
         from boto3.dynamodb.conditions import Key
 
-        resp = self.table.query(
-            KeyConditionExpression=Key("pk").eq("TICKET#%s" % ticket_id)
-        )
-        return sorted(resp.get("Items", []), key=lambda r: r["sk"])
+        rows: list[dict] = []
+        kwargs = {"KeyConditionExpression": Key("pk").eq(pk)}
+        while True:
+            resp = self.table.query(**kwargs)
+            rows.extend(resp.get("Items", []))
+            if "LastEvaluatedKey" not in resp:
+                break
+            kwargs["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
+        return sorted(rows, key=lambda r: r["sk"])
 
     def tickets(self) -> list[dict]:
         """Every META row, newest first. A SCAN — developer-side only.

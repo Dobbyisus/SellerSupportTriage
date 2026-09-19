@@ -41,6 +41,15 @@ namespace SellerTriage {
     // pipeline/precedent.py from the decision trail — a fact about what the
     // system itself sent before, not a model opinion.
     conflicts_with_precedent: Bool,
+
+    // Did the seller quote a performance figure that is the wrong side of a
+    // published floor for selling in the store at all? Produced by
+    // pipeline/standing.py: a regex reads the number out of the seller's own
+    // words and Python compares it. No model, and no arithmetic done by one.
+    //
+    // Missing the Prime badge bar is NOT this. That is a fact we can quote
+    // and send. This is the floor that decides whether they have a shop.
+    standing_breach: Bool,
   };
 
   action AutoSend appliesTo {

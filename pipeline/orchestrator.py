@@ -1,4 +1,4 @@
-"""The pipeline: classify -> retrieve -> precedent -> draft -> gate -> log.
+"""The pipeline: classify -> retrieve -> precedent -> standing -> draft -> gate -> log.
 
 A FIXED SEQUENCE WITH EXACTLY ONE AGENTIC STEP
     The order never varies, which is what keeps a live demo deterministic. The
@@ -19,8 +19,11 @@ WHAT GETS LOGGED
 import uuid
 
 import backends
+import coverage as coverage_mod
+import intent as intent_mod
 import precedent as precedent_mod
 import settings
+import standing as standing_mod
 import trail as trail_mod
 
 import config as os_config  # opensearch/config.py
@@ -54,6 +57,12 @@ class Pipeline:
         # -- 1. classify --------------------------------------------------
         # The local classifier votes over a retrieval probe. That probe is a
         # real retrieval call, so it is named in the trail rather than hidden.
+        # Intent rides along with the routing decision rather than taking a
+        # stop of its own: both answer "what kind of ticket is this", and it
+        # is a regex, not a step anyone waits for. It selects a paragraph in
+        # the drafting prompt and nothing else — never a gate input. See
+        # intent.py.
+        how = intent_mod.explain(text)
         cls = self.classifier.classify(text, probe=self.retriever.search)
         category = cls["category"]
         log("classify", {
@@ -61,6 +70,9 @@ class Pipeline:
             "backend": cls["backend"],
             "detail": cls.get("detail", ""),
             "votes": cls.get("votes"),
+            "intent": how["intent"],
+            "intent_why": how["why"],
+            "intent_matched": how["matched"],
         })
 
         # -- 2. retrieve --------------------------------------------------
@@ -106,8 +118,20 @@ class Pipeline:
         prec = precedent_mod.lookup(self.precedents, text, best, exclude_id=ticket_id)
         log("precedent", precedent_mod.step_detail(prec))
 
-        # -- 5. draft -----------------------------------------------------
-        drafted = self.drafter.draft(text, best)
+        # -- 5. standing: the seller's own numbers against published limits -
+        # Runs on every ticket and finds nothing in most of them. When the
+        # seller has quoted a metric, the comparison is done here in Python
+        # and handed to the drafter as a finished fact it may not recompute —
+        # the model is bad at arithmetic and this arithmetic decides whether
+        # someone keeps their shop.
+        stand = standing_mod.check(text)
+        log("standing", standing_mod.step_detail(stand))
+
+        # -- 6. draft -----------------------------------------------------
+        drafted = self.drafter.draft(text, best, context={
+            "intent": how["intent"],
+            "standing": stand,
+        })
         grounding = _verify(drafted["draft"], best)
         log("draft", {
             "backend": drafted["backend"],
@@ -121,7 +145,7 @@ class Pipeline:
             "citation": _citation(best),
         })
 
-        # -- 6. gate ------------------------------------------------------
+        # -- 7. gate ------------------------------------------------------
         # has_citation is a fact about retrieval, not a hope: the passage must
         # carry a resolvable source_url or the reply cannot be checked.
         has_citation = bool(best and best.get("source_url"))
@@ -132,6 +156,7 @@ class Pipeline:
             has_citation=has_citation,
             draft_quotes_policy=grounding["draft_quotes_policy"],
             conflicts_with_precedent=prec["conflict"],
+            standing_breach=stand["breach_selling"],
         )
         decision = gate_mod.decide(ticket, ticket_id=ticket_id)
         log("gate", {
@@ -146,6 +171,7 @@ class Pipeline:
                 "has_citation": has_citation,
                 "draft_quotes_policy": grounding["draft_quotes_policy"],
                 "conflicts_with_precedent": prec["conflict"],
+                "standing_breach": stand["breach_selling"],
             },
         })
 
@@ -163,6 +189,26 @@ class Pipeline:
             "completed_ms": trail_mod.now_ms(),
         })
         self.trail.put(outcome)
+
+        # One row per run in the month's partition, so the coverage report is
+        # a single query rather than a scan the function's role cannot make.
+        # A failure here is never allowed to fail a ticket — the report is a
+        # by-product, and the trail already holds everything it summarises.
+        try:
+            self.trail.put(coverage_mod.run_item(
+                ticket_id, text, meta["created_ms"],
+                category=category,
+                decision=decision["decision"],
+                blocked_by=decision["blocked_by"],
+                confident=conf["confident"],
+                has_citation=has_citation,
+                draft_quotes_policy=grounding["draft_quotes_policy"],
+                best_title=(best or {}).get("title"),
+                best_cosine=conf["best_cosine"],
+            ))
+        except Exception as exc:                # noqa: BLE001
+            outcome["coverage_error"] = "%s: %s" % (type(exc).__name__, str(exc)[:160])
+            self.trail.put(outcome)
 
         # This ticket is now a precedent for the next one. Stored AFTER the
         # trail is complete, and never allowed to fail the run — the trail
@@ -182,6 +228,9 @@ class Pipeline:
             "ticket_id": ticket_id,
             "text": text,
             "category": category,
+            "intent": how["intent"],
+            "intent_why": how["why"],
+            "standing": standing_mod.step_detail(stand),
             "confidence": conf,
             "requeried": requeried,
             "results": hits,

@@ -236,3 +236,38 @@ forbid (
 ) when {
   resource.conflicts_with_precedent == true
 };
+
+// ---------------------------------------------------------------------------
+// F8 — the seller's own numbers are under a floor that decides whether they
+//      have a shop at all
+// ---------------------------------------------------------------------------
+// The standing check reads a performance figure out of the seller's own words
+// and compares it, in Python, against a limit quoted verbatim from the corpus.
+// When the figure is the wrong side of a SELLING floor — Order Defect Rate at
+// or above 1%, Late Shipment Rate at or above 4%, Cancellation Rate at or
+// above 2.5%, Valid Tracking Rate under 95%, on-time delivery under 90% —
+// this account is in enforcement territory whether or not the seller has
+// noticed, and whether or not they have mentioned deactivation. F1 catches
+// the ones who say the word. This catches the ones who are living it.
+//
+// DELIBERATELY NOT THE PRIME BAR. Falling short of Seller Fulfilled Prime's
+// 93.5% / 99% / 0.5% costs the badge, not the business. That is a fact we can
+// quote from a published page and send without a person — which is the whole
+// point of having a grounded answer, and holding it back would make the
+// standing check useless for the sellers it most helps.
+//
+// Like every other forbid rule, this reads a fact extracted from the seller's
+// own words, never the classifier's opinion about them.
+@id("F8_standing_breach")
+@reason("The seller's own figures are under a published floor for selling in the store. That is enforcement territory — a person confirms the account's real standing before any reply goes out.")
+@grounding("The floors are quoted verbatim from Amazon's own published metric pages in our corpus: ODR less than 1%, LSR less than 4%, CR less than 2.5%, VTR at or above 95%, on-time delivery at or above 90%. pipeline/standing.py --self-test re-reads each sentence from chunks.jsonl.")
+@source_type("first_party_policy")
+@source("https://sellercentral.amazon.com/help/hub/reference/external/G200285170?locale=en-US")
+@policy_ref("Order Defect Rate; Late Shipment Rate; Cancellation Rate; Valid tracking rate (VTR); On-time delivery rate")
+forbid (
+  principal,
+  action == SellerTriage::Action::"AutoSend",
+  resource
+) when {
+  resource.standing_breach == true
+};

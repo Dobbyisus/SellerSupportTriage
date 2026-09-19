@@ -51,7 +51,7 @@ def render(out: dict, verbose: bool = True) -> None:
     print(BAR)
     print(out["text"])
 
-    print("\n  1. CLASSIFY   %s" % out["category"])
+    print("\n  1. CLASSIFY   %s   (read as a %s)" % (out["category"], out.get("intent", "-")))
     print("  2. RETRIEVE   best cosine %.4f  floor %.2f  -> %s"
           % (conf["best_cosine"], conf["min_sim"],
              "confident" if conf["confident"] else "NOT confident"))
@@ -86,14 +86,22 @@ def render(out: dict, verbose: bool = True) -> None:
         if last:
             print("     last sent stood on: %s" % (last["policy"]["title"] or last["doc_id"]))
 
+    st = out.get("standing") or {}
+    if not st.get("checked"):
+        print("  5. STANDING   no account numbers in this ticket")
+    else:
+        print("  5. STANDING   %s" % st["summary"])
+        for f in st["findings"]:
+            print("     %-6s %s" % (f["status"], f["sentence"]))
+
     g = out["grounding"]
-    print("\n  5. DRAFT      grounding: %s" % g["detail"])
+    print("\n  6. DRAFT      grounding: %s" % g["detail"])
     if verbose:
         print()
         for line in out["draft"].splitlines():
             print("     | %s" % line)
 
-    print("\n  6. GATE       %s" % d["decision"])
+    print("\n  7. GATE       %s" % d["decision"])
     print("     topics: %s" % (", ".join(d["topics"]) or "none"))
     for rid, reason in zip(d["blocked_by"], d["reasons"]):
         print("     %-26s %s" % (rid, reason))

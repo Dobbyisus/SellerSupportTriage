@@ -270,7 +270,10 @@ class BedrockClassifier:
 
 
 class Drafter(Protocol):
-    def draft(self, text: str, hit: dict) -> dict: ...
+    # `context` carries what the pipeline already worked out about this
+    # ticket — intent, account standing. Optional, so a drafter that does not
+    # care about it stays a two-line class.
+    def draft(self, text: str, hit: dict, context: dict | None = None) -> dict: ...
 
 
 _SENTENCE = re.compile(r"(?<=[.!?])\s+")
@@ -315,7 +318,7 @@ class TemplateDrafter:
 
     name = "template"
 
-    def draft(self, text: str, hit: dict) -> dict:
+    def draft(self, text: str, hit: dict, context: dict | None = None) -> dict:
         if hit is None:
             return {"draft": drafting_refusal(), "backend": self.name,
                     "refused": True}
@@ -335,6 +338,15 @@ class TemplateDrafter:
             "",
             'The applicable policy states: "%s"' % quote,
         ]
+
+        # The standing findings are already sentences, and deliberately carry
+        # no quotation marks: verify_grounding checks quoted spans against the
+        # retrieved passage, and these were computed from other pages.
+        stand = (context or {}).get("standing") or {}
+        if stand.get("checked"):
+            lines += ["", "Your numbers against the published limits:"]
+            for f in stand["findings"]:
+                lines.append("  - %s" % f["sentence"])
 
         thresholds = hit.get("rules") or []
         if thresholds:
@@ -409,12 +421,12 @@ class MantleDrafter:
         return requests.post(self.url, data=req.body, headers=dict(req.headers),
                              timeout=settings.DRAFT_TIMEOUT)
 
-    def draft(self, text: str, hit: dict) -> dict:
+    def draft(self, text: str, hit: dict, context: dict | None = None) -> dict:
         if hit is None:
             return {"draft": self._drafting.REFUSAL, "backend": self.name, "refused": True}
 
         # Reuse the exact production prompt rather than a second copy of it.
-        req = self._drafting.build_draft_request(text, hit)
+        req = self._drafting.build_draft_request(text, hit, context)
         body = {
             "model": self.model,
             "max_tokens": req["inferenceConfig"]["maxTokens"],
@@ -469,11 +481,11 @@ class FallbackDrafter:
         self.fallback = fallback or TemplateDrafter()
         self.name = "%s -> %s" % (primary.name, self.fallback.name)
 
-    def draft(self, text: str, hit: dict) -> dict:
+    def draft(self, text: str, hit: dict, context: dict | None = None) -> dict:
         try:
-            return self.primary.draft(text, hit)
+            return self.primary.draft(text, hit, context)
         except Exception as exc:  # network, timeout, HTTP, empty completion
-            out = self.fallback.draft(text, hit)
+            out = self.fallback.draft(text, hit, context)
             out["fallback_reason"] = "%s: %s" % (type(exc).__name__, str(exc)[:160])
             out["backend"] = "%s (fallback from %s)" % (out["backend"], self.primary.name)
             return out
@@ -491,10 +503,10 @@ class BedrockDrafter:
         self._drafting = drafting
         self._client = boto3.client("bedrock-runtime", region_name=os_config.REGION)
 
-    def draft(self, text: str, hit: dict) -> dict:
+    def draft(self, text: str, hit: dict, context: dict | None = None) -> dict:
         if hit is None:
             return {"draft": self._drafting.REFUSAL, "backend": self.name, "refused": True}
-        req = self._drafting.build_draft_request(text, hit)
+        req = self._drafting.build_draft_request(text, hit, context)
         resp = self._client.converse(
             modelId=req["modelId"], system=req["system"],
             messages=req["messages"], inferenceConfig=req["inferenceConfig"],

@@ -125,7 +125,7 @@ STYLE
 DRAFT_USER = """\
 TICKET FROM SELLER
 {ticket}
-
+{mode_block}{standing_block}
 RETRIEVED POLICY PASSAGE
 Title: {title}
 Section: {heading_path}
@@ -140,6 +140,49 @@ this ticket.\
 """
 
 
+# The queue was built for complaints, and the system prompt's shape — rule 3,
+# "acknowledge their specific problem" — assumes one. A seller asking how to
+# qualify for something has no problem to acknowledge, and opening with
+# sympathy for an imagined one reads as a form letter, which is the exact
+# failure F6 exists to catch.
+QUESTION_BLOCK = """
+THIS SELLER IS ASKING A QUESTION, NOT REPORTING A PROBLEM
+Answer it directly from the passage. Do not open with an apology, do not
+express sympathy, and do not invent a complaint to acknowledge. Rule 3 still
+holds: answer the question THEY asked, naming the specific thing they asked
+about, not the category it falls in.
+"""
+
+
+def format_mode(intent: str | None) -> str:
+    return QUESTION_BLOCK if intent == "question" else ""
+
+
+def format_standing(standing: dict | None) -> str:
+    """The seller's own numbers, already compared, handed over as fact.
+
+    NOTE THE NO-QUOTING RULE. These sentences are built from the standing
+    table, which cites pages OTHER than the retrieved passage. verify_grounding
+    checks every quoted span against the retrieved passage alone, so a model
+    that helpfully wrapped one of these lines in quotation marks would fail
+    the grounding check and send its own reply to the escalation queue. The
+    instruction below is load-bearing, not politeness.
+    """
+    if not standing or not standing.get("checked"):
+        return ""
+    lines = [
+        "",
+        "THE SELLER'S OWN NUMBERS, ALREADY CHECKED AGAINST PUBLISHED LIMITS",
+        "These comparisons were computed in code, not by you. Use the ones that",
+        "are relevant. Never recalculate one, never contradict one, never add a",
+        "limit that is not listed here, and never put these lines in quotation",
+        "marks — the quote check reads the passage above, not this block.",
+    ]
+    for f in standing.get("findings", []):
+        lines.append("  - [%s] %s" % (f["status"], f["sentence"]))
+    return "\n".join(lines) + "\n"
+
+
 def format_rules(rules: list[dict] | None) -> str:
     """Surface structured thresholds so the model quotes them exactly."""
     if not rules:
@@ -152,13 +195,19 @@ def format_rules(rules: list[dict] | None) -> str:
     return "\n".join(lines) + "\n"
 
 
-def build_draft_request(ticket_text: str, hit: dict) -> dict:
+def build_draft_request(ticket_text: str, hit: dict, context: dict | None = None) -> dict:
     """A Bedrock Converse request body for Nova Pro.
 
-    `hit` is one result from opensearch/search.py.
+    `hit` is one result from opensearch/search.py. `context` is what the
+    pipeline worked out about the seller before drafting — the intent, and any
+    account standing findings — neither of which the model is asked to decide
+    for itself.
     """
+    context = context or {}
     user = DRAFT_USER.format(
         ticket=ticket_text,
+        mode_block=format_mode(context.get("intent")),
+        standing_block=format_standing(context.get("standing")),
         title=hit.get("title") or "",
         heading_path=hit.get("heading_path") or "",
         url=hit.get("source_url") or "(no URL — do not cite a link)",

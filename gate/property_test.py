@@ -40,10 +40,10 @@ def report(ok: bool, label: str, detail: str = "") -> None:
 
 
 def evaluate(topic_list, confidence=0.95, citation=True, quotes=True, category="shipping",
-             conflict=False):
+             conflict=False, standing=False):
     ticket = gate_mod.build_ticket(
         "", category, confidence, citation, quotes, topic_override=list(topic_list),
-        conflicts_with_precedent=conflict,
+        conflicts_with_precedent=conflict, standing_breach=standing,
     )
     return gate_mod.decide(ticket)
 
@@ -123,23 +123,25 @@ def main() -> None:
                "" if got == expected else "got %s" % got)
 
     # ---------------------------------------------------------------- P6
-    print("\nP6  exhaustive: every single-topic state x three booleans x floor")
+    print("\nP6  exhaustive: every single-topic state x four booleans x floor")
     combos = 0
     leaks = []
     subsets = [()] + [(t,) for t in sorted(extractor_topics)]
-    for subset, conf, cite, quote, conflict in itertools.product(
-        subsets, (0.7199, 0.72, 0.95), (True, False), (True, False), (False, True)
+    for subset, conf, cite, quote, conflict, standing in itertools.product(
+        subsets, (0.7199, 0.72, 0.95), (True, False), (True, False), (False, True),
+        (False, True)
     ):
-        out = evaluate(subset, conf, cite, quote, conflict=conflict)
+        out = evaluate(subset, conf, cite, quote, conflict=conflict, standing=standing)
         combos += 1
         # Auto-send is legal only when nothing is guarded, every F6 input is
-        # clean, AND no already-sent reply would be contradicted (F7).
+        # clean, no already-sent reply would be contradicted (F7), and the
+        # seller's own figures are not under a selling floor (F8).
         should_allow = (
             not (set(subset) & policy_all) and conf >= 0.72 and cite and quote
-            and not conflict
+            and not conflict and not standing
         )
         if out["allowed"] != should_allow:
-            leaks.append((subset, conf, cite, quote, conflict, out["decision"]))
+            leaks.append((subset, conf, cite, quote, conflict, standing, out["decision"]))
     report(not leaks, "%d combinations, all as expected" % combos,
            "%d mismatches" % len(leaks) if leaks else "")
     for leak in leaks[:5]:
@@ -183,6 +185,20 @@ def main() -> None:
     report(out["decision"] == "AUTO_SEND", "clean ticket + no conflict -> AUTO_SEND")
     print("      The check compares documents the system itself sent. It never")
     print("      reads the classifier, so P8 still holds with F7 in the set.")
+
+    # ---------------------------------------------------------------- P10
+    print("\nP10 a breached selling floor blocks on its own, and only F8 fires")
+    out = evaluate([], standing=True)
+    report(out["decision"] == "ESCALATE" and out["blocked_by"] == ["F8_standing_breach"],
+           "clean ticket + standing breach -> ESCALATE via F8 alone",
+           "" if out["blocked_by"] == ["F8_standing_breach"] else str(out["blocked_by"]))
+    labels = {
+        evaluate([], category=c, standing=True)["decision"]
+        for c in ["account", "returns", "shipping", "payments", "listings"]
+    }
+    report(len(labels) == 1, "and it holds under every classifier label", str(labels))
+    print("      The figure is read out of the seller's own words by")
+    print("      pipeline/standing.py, so P8 still holds with F8 in the set.")
 
     # ---------------------------------------------------------------- summary
     print()
