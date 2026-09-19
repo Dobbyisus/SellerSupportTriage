@@ -88,7 +88,8 @@
   body.dragging,body.dragging *{cursor:grabbing!important;user-select:none}
 
   /* the ledger — the run, line by line, beside the stop the operator is reading */
-  .trail{flex-grow:1;min-height:0;padding:14px 24px;background:var(--page);display:flex;flex-direction:column}
+  /* A real minimum, not zero: on a short window the page must grow and scroll rather than let the ledger collapse and clip its own rows. */
+  .trail{flex-grow:1;min-height:404px;padding:14px 24px;background:var(--page);display:flex;flex-direction:column}
   .lg{flex-grow:1;min-height:0;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
   .lg .hd{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 16px;border-bottom:1px solid var(--line2);flex-shrink:0}
   .lg .hd .dot{width:7px;height:7px;border-radius:50%;background:var(--mute);flex-shrink:0;transition:background .3s}
